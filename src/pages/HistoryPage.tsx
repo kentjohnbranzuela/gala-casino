@@ -6,9 +6,10 @@ import AuthProtection from '@/components/auth/AuthProtection';
 
 const HistoryPage: React.FC = () => {
   return (
-    <AuthProtection>
+    <AuthProtection requiredRole="user" excludeRole="admin">
       <Layout>
         <div className="max-w-5xl mx-auto">
+          <h1 className="text-2xl font-bold mb-6 text-casino-gold">Transaction History</h1>
           <HistoryTabs />
         </div>
       </Layout>

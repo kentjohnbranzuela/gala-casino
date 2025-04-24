@@ -24,6 +24,7 @@ const Index = () => {
     return <Navigate to="/admin" />;
   }
 
+  // Only regular users should see the homepage
   return <HomePage />;
 };
 

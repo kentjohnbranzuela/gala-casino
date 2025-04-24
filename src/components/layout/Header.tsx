@@ -1,21 +1,40 @@
 
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Wallet, Coins } from 'lucide-react';
+import { Wallet, Coins, LogOut, User } from 'lucide-react';
 import DepositModal from '../modals/DepositModal';
 import WithdrawModal from '../modals/WithdrawModal';
+import { Avatar, AvatarFallback } from '../ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { toast } from 'sonner';
 
 const Header = () => {
   const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  
+  const userType = localStorage.getItem('userType');
+  const isAdmin = userType === 'admin';
   
   // Mock user balance - in a real app, this would come from authentication context
   const balance = 10000;
 
   const isActive = (path: string) => {
     return location.pathname === path ? 'active' : '';
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('userType');
+    localStorage.removeItem('isLoggedIn');
+    toast.success('Successfully logged out');
+    navigate('/login');
   };
 
   return (
@@ -30,33 +49,65 @@ const Header = () => {
           
           <div className="flex items-center">
             <nav className="hidden md:flex items-center space-x-4 mr-6">
-              <Link to="/" className={`nav-link ${isActive('/')}`}>Home</Link>
-              <Link to="/slots" className={`nav-link ${isActive('/slots')}`}>Slots</Link>
-              <Link to="/fishing" className={`nav-link ${isActive('/fishing')}`}>Fishing</Link>
-              <Link to="/color" className={`nav-link ${isActive('/color')}`}>Color Games</Link>
-              <Link to="/history" className={`nav-link ${isActive('/history')}`}>History</Link>
-              <Link to="/admin" className={`nav-link ${isActive('/admin')}`}>Admin</Link>
+              {!isAdmin && (
+                <>
+                  <Link to="/" className={`nav-link ${isActive('/')}`}>Home</Link>
+                  <Link to="/slots" className={`nav-link ${isActive('/slots')}`}>Slots</Link>
+                  <Link to="/fishing" className={`nav-link ${isActive('/fishing')}`}>Fishing</Link>
+                  <Link to="/color" className={`nav-link ${isActive('/color')}`}>Color Games</Link>
+                  <Link to="/history" className={`nav-link ${isActive('/history')}`}>History</Link>
+                </>
+              )}
+              {isAdmin && (
+                <Link to="/admin" className={`nav-link ${isActive('/admin')}`}>Admin Panel</Link>
+              )}
             </nav>
             
             <div className="flex items-center space-x-2">
-              <div className="bg-casino-purple-dark rounded-md py-1 px-3 mr-2 flex items-center">
-                <Coins className="w-4 h-4 text-casino-gold mr-2" />
-                <span className="text-white">₱{balance.toLocaleString()}</span>
-              </div>
-              
-              <Button 
-                onClick={() => setIsDepositModalOpen(true)}
-                className="btn-casino"
-              >
-                <Wallet className="w-4 h-4 mr-1" /> Deposit
-              </Button>
-              
-              <Button 
-                onClick={() => setIsWithdrawModalOpen(true)}
-                className="btn-gold"
-              >
-                Withdraw
-              </Button>
+              {!isAdmin && (
+                <>
+                  <div className="bg-casino-purple-dark rounded-md py-1 px-3 mr-2 flex items-center">
+                    <Coins className="w-4 h-4 text-casino-gold mr-2" />
+                    <span className="text-white">₱{balance.toLocaleString()}</span>
+                  </div>
+                  
+                  <Button 
+                    onClick={() => setIsDepositModalOpen(true)}
+                    className="btn-casino"
+                  >
+                    <Wallet className="w-4 h-4 mr-1" /> Deposit
+                  </Button>
+                  
+                  <Button 
+                    onClick={() => setIsWithdrawModalOpen(true)}
+                    className="btn-gold"
+                  >
+                    Withdraw
+                  </Button>
+                </>
+              )}
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                    <Avatar>
+                      <AvatarFallback className="bg-casino-purple-dark text-white">
+                        {isAdmin ? 'A' : 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end">
+                  <DropdownMenuItem className="flex items-center">
+                    <User className="mr-2 h-4 w-4" />
+                    <span>Profile ({isAdmin ? 'Admin' : 'User'})</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleLogout} className="flex items-center text-red-500">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
