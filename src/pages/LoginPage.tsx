@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -27,23 +26,14 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simple login logic (in a real app, this would use proper authentication)
-    if (username === 'admin' && password === 'admin123') {
-      // Admin login
+    // Admin credentials
+    if (username === 'admin09917104135' && password === 'admin123456') {
       setTimeout(() => {
         localStorage.setItem('userType', 'admin');
         localStorage.setItem('isLoggedIn', 'true');
+        localStorage.setItem('username', username);
         toast.success('Welcome, Admin!');
         navigate('/admin');
-        setIsLoading(false);
-      }, 1000);
-    } else if (username === 'user' && password === 'user123') {
-      // User login
-      setTimeout(() => {
-        localStorage.setItem('userType', 'user');
-        localStorage.setItem('isLoggedIn', 'true');
-        toast.success('Login successful!');
-        navigate('/');
         setIsLoading(false);
       }, 1000);
     } else {
