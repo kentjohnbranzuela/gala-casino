@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -37,10 +38,51 @@ const LoginPage: React.FC = () => {
         setIsLoading(false);
       }, 1000);
     } else {
-      setTimeout(() => {
-        toast.error('Invalid username or password');
+      // Check if this is a registered user
+      try {
+        const storedUsers = localStorage.getItem('registeredUsers');
+        if (storedUsers) {
+          const users = JSON.parse(storedUsers);
+          const foundUser = users.find((user: any) => 
+            user.username === username && user.password === password
+          );
+          
+          if (foundUser) {
+            // Update user's last login time
+            const updatedUsers = users.map((user: any) => {
+              if (user.username === username) {
+                return {
+                  ...user,
+                  lastLogin: new Date().toISOString().split('T')[0]
+                };
+              }
+              return user;
+            });
+            
+            localStorage.setItem('registeredUsers', JSON.stringify(updatedUsers));
+            localStorage.setItem('userType', 'user');
+            localStorage.setItem('isLoggedIn', 'true');
+            localStorage.setItem('username', username);
+            
+            setTimeout(() => {
+              toast.success('Login successful!');
+              navigate('/');
+              setIsLoading(false);
+            }, 1000);
+            return;
+          }
+        }
+        
+        // If no match found
+        setTimeout(() => {
+          toast.error('Invalid username or password');
+          setIsLoading(false);
+        }, 1000);
+      } catch (error) {
+        console.error("Login error:", error);
+        toast.error('An error occurred during login');
         setIsLoading(false);
-      }, 1000);
+      }
     }
   };
   
@@ -61,15 +103,55 @@ const LoginPage: React.FC = () => {
       return;
     }
     
-    // In a real app, this would call an API to create a new user
-    // For demo purposes, we'll just simulate a successful registration
-    setTimeout(() => {
-      toast.success('Account created successfully! You can now log in.');
+    try {
+      // Check if username already exists
+      const storedUsers = localStorage.getItem('registeredUsers');
+      let users = [];
+      
+      if (storedUsers) {
+        users = JSON.parse(storedUsers);
+        
+        // Check if username already exists
+        if (users.some((user: any) => user.username === regUsername)) {
+          toast.error('Username already exists');
+          setIsRegistering(false);
+          return;
+        }
+      }
+      
+      // Create new user
+      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+      const newUser = {
+        id: Date.now().toString(),
+        username: regUsername,
+        password: regPassword, // In a real app, this would be hashed
+        registrationDate: today,
+        lastLogin: today,
+        depositCount: 0,
+        withdrawalCount: 0,
+        totalDeposits: 0,
+        totalWithdrawals: 0
+      };
+      
+      // Add user to storage
+      users.push(newUser);
+      localStorage.setItem('registeredUsers', JSON.stringify(users));
+      
+      // Trigger an event so the admin panel can refresh
+      window.dispatchEvent(new Event('storage'));
+      
+      setTimeout(() => {
+        toast.success('Account created successfully! You can now log in.');
+        setIsRegistering(false);
+        setRegUsername('');
+        setRegPassword('');
+        setRegConfirmPassword('');
+      }, 1000);
+    } catch (error) {
+      console.error("Registration error:", error);
+      toast.error('An error occurred during registration');
       setIsRegistering(false);
-      setRegUsername('');
-      setRegPassword('');
-      setRegConfirmPassword('');
-    }, 1000);
+    }
   };
 
   return (
@@ -198,12 +280,6 @@ const LoginPage: React.FC = () => {
             </form>
           </TabsContent>
         </Tabs>
-        
-        <div className="mt-6 text-center text-sm text-gray-300">
-          <p>Demo accounts:</p>
-          <p>Admin: admin / admin123</p>
-          <p>User: user / user123</p>
-        </div>
       </div>
     </div>
   );
