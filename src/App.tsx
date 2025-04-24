@@ -12,6 +12,7 @@ import HistoryPage from "./pages/HistoryPage";
 import AdminPage from "./pages/AdminPage";
 import GameDetailPage from "./pages/GameDetailPage";
 import NotFound from "./pages/NotFound";
+import LoginPage from "./pages/LoginPage";
 
 const queryClient = new QueryClient();
 
@@ -22,6 +23,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          <Route path="/login" element={<LoginPage />} />
           <Route path="/" element={<HomePage />} />
           <Route path="/slots" element={<SlotsPage />} />
           <Route path="/fishing" element={<FishingPage />} />
