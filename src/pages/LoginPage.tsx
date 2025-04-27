@@ -130,7 +130,8 @@ const LoginPage: React.FC = () => {
         depositCount: 0,
         withdrawalCount: 0,
         totalDeposits: 0,
-        totalWithdrawals: 0
+        totalWithdrawals: 0,
+        balance: 0 // Initialize balance as 0
       };
       
       // Add user to storage

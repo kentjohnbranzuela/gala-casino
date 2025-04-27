@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Wallet, Coins, LogOut, User } from 'lucide-react';
@@ -17,14 +17,29 @@ import { toast } from 'sonner';
 const Header = () => {
   const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
+  const [balance, setBalance] = useState(0);
   const location = useLocation();
   const navigate = useNavigate();
   
   const userType = localStorage.getItem('userType');
+  const username = localStorage.getItem('username');
   const isAdmin = userType === 'admin';
   
-  // Mock user balance - in a real app, this would come from authentication context
-  const balance = 10000;
+  useEffect(() => {
+    // Fetch user's balance from localStorage or initialize if first time
+    if (!isAdmin && username) {
+      const storedUsers = localStorage.getItem('registeredUsers');
+      if (storedUsers) {
+        const users = JSON.parse(storedUsers);
+        const currentUser = users.find((user: any) => user.username === username);
+        if (currentUser) {
+          // Get balance or set to 0 if not exists
+          const userBalance = currentUser.balance || 0;
+          setBalance(userBalance);
+        }
+      }
+    }
+  }, [username, isAdmin]);
 
   const isActive = (path: string) => {
     return location.pathname === path ? 'active' : '';
@@ -33,6 +48,7 @@ const Header = () => {
   const handleLogout = () => {
     localStorage.removeItem('userType');
     localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('username');
     toast.success('Successfully logged out');
     navigate('/login');
   };
@@ -92,17 +108,21 @@ const Header = () => {
                   <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                     <Avatar>
                       <AvatarFallback className="bg-casino-purple-dark text-white">
-                        {isAdmin ? 'A' : 'U'}
+                        {username ? username[0].toUpperCase() : (isAdmin ? 'A' : 'U')}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56" align="end">
-                  <DropdownMenuItem className="flex items-center">
+                  <DropdownMenuItem 
+                    onClick={() => navigate('/profile')}
+                    className="flex items-center cursor-pointer"
+                    disabled={isAdmin}
+                  >
                     <User className="mr-2 h-4 w-4" />
-                    <span>Profile ({isAdmin ? 'Admin' : 'User'})</span>
+                    <span>Profile</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleLogout} className="flex items-center text-red-500">
+                  <DropdownMenuItem onClick={handleLogout} className="flex items-center text-red-500 cursor-pointer">
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Log out</span>
                   </DropdownMenuItem>

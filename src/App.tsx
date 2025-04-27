@@ -10,6 +10,7 @@ import FishingPage from "./pages/FishingPage";
 import ColorPage from "./pages/ColorPage";
 import HistoryPage from "./pages/HistoryPage";
 import AdminPage from "./pages/AdminPage";
+import ProfilePage from "./pages/ProfilePage";
 import GameDetailPage from "./pages/GameDetailPage";
 import NotFound from "./pages/NotFound";
 import LoginPage from "./pages/LoginPage";
@@ -29,6 +30,7 @@ const App = () => (
           <Route path="/fishing" element={<FishingPage />} />
           <Route path="/color" element={<ColorPage />} />
           <Route path="/history" element={<HistoryPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/:category/:id" element={<GameDetailPage />} />
           <Route path="*" element={<NotFound />} />

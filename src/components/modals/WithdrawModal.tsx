@@ -16,6 +16,8 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ onClose }) => {
   const [accountNumber, setAccountNumber] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   
+  const username = localStorage.getItem('username') || '';
+  
   const handleWithdraw = () => {
     if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
       toast.error('Please enter a valid amount');
@@ -29,14 +31,73 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ onClose }) => {
     
     setIsProcessing(true);
     
-    // Simulate processing
-    setTimeout(() => {
+    try {
+      // Get user's balance from localStorage
+      const storedUsers = localStorage.getItem('registeredUsers');
+      if (storedUsers) {
+        const users = JSON.parse(storedUsers);
+        const currentUser = users.find((user: any) => user.username === username);
+        
+        if (currentUser) {
+          const userBalance = currentUser.balance || 0;
+          const withdrawAmount = Number(amount);
+          
+          if (withdrawAmount > userBalance) {
+            toast.error('Insufficient balance');
+            setIsProcessing(false);
+            return;
+          }
+          
+          // Update user's balance and withdrawal count
+          const updatedUsers = users.map((user: any) => {
+            if (user.username === username) {
+              return {
+                ...user,
+                balance: userBalance - withdrawAmount,
+                withdrawalCount: (user.withdrawalCount || 0) + 1,
+                totalWithdrawals: (user.totalWithdrawals || 0) + withdrawAmount,
+              };
+            }
+            return user;
+          });
+          
+          localStorage.setItem('registeredUsers', JSON.stringify(updatedUsers));
+          
+          // Create withdrawal request
+          const withdrawalId = `W${Date.now()}`;
+          const withdrawalRequest = {
+            id: withdrawalId,
+            user: username,
+            method: method,
+            accountNumber: accountNumber,
+            amount: withdrawAmount,
+            requestDate: new Date().toISOString(),
+            status: 'processing'
+          };
+          
+          // Save withdrawal request to localStorage
+          const storedWithdrawals = localStorage.getItem('withdrawalRequests');
+          let withdrawals = [];
+          
+          if (storedWithdrawals) {
+            withdrawals = JSON.parse(storedWithdrawals);
+          }
+          
+          withdrawals.push(withdrawalRequest);
+          localStorage.setItem('withdrawalRequests', JSON.stringify(withdrawals));
+          
+          // Trigger event for admin panel update
+          window.dispatchEvent(new Event('storage'));
+          
+          toast.success(`Withdrawal request of ₱${amount} is being processed`);
+          onClose();
+        }
+      }
+    } catch (error) {
+      console.error("Withdrawal error:", error);
+      toast.error('An error occurred during withdrawal');
       setIsProcessing(false);
-      toast.success(`Withdrawal request of ₱${amount} is being processed`);
-      onClose();
-      
-      // In a real app, you'd save this to a database
-    }, 1500);
+    }
   };
   
   return (
