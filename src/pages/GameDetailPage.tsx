@@ -7,7 +7,7 @@ import { allGames, Game } from '@/data/games';
 import { toast } from 'sonner';
 import SlotGame from '@/components/games/SlotGame';
 import AuthProtection from '@/components/auth/AuthProtection';
-import { CircleDot } from 'lucide-react'; // Added for customer service icon
+import { CircleDot, X } from 'lucide-react';
 
 const GameDetailPage: React.FC = () => {
   const { category, id } = useParams<{ category: string; id: string }>();
@@ -15,6 +15,9 @@ const GameDetailPage: React.FC = () => {
   const [game, setGame] = useState<Game | null>(null);
   const [showGameInterface, setShowGameInterface] = useState(false);
   const [showSupport, setShowSupport] = useState(false);
+  const [supportMessage, setSupportMessage] = useState('');
+  const [hasNotification, setHasNotification] = useState(false);
+  const username = localStorage.getItem('username');
   
   useEffect(() => {
     // Find the game by id
@@ -25,7 +28,33 @@ const GameDetailPage: React.FC = () => {
       navigate('/');
       toast.error('Game not found');
     }
-  }, [id, navigate]);
+
+    // Check for notifications
+    if (username) {
+      const checkNotifications = () => {
+        const notifications = JSON.parse(localStorage.getItem('userNotifications') || '{}');
+        const userNotifs = notifications[username] || [];
+        const unreadNotifs = userNotifs.filter((n: any) => !n.read);
+        setHasNotification(unreadNotifs.length > 0);
+      };
+      
+      checkNotifications();
+      
+      // Listen for notification events
+      const handleNotification = (e: CustomEvent) => {
+        if (e.detail?.username === username) {
+          checkNotifications();
+          toast.info("You have a new message from customer support!");
+        }
+      };
+      
+      window.addEventListener('user:notification', handleNotification as EventListener);
+      
+      return () => {
+        window.removeEventListener('user:notification', handleNotification as EventListener);
+      };
+    }
+  }, [id, navigate, username]);
   
   const handlePlay = () => {
     setShowGameInterface(true);
@@ -36,7 +65,6 @@ const GameDetailPage: React.FC = () => {
     window.dispatchEvent(new Event('storage:balance:updated'));
     
     // Record game history
-    const username = localStorage.getItem('username');
     if (username) {
       const gameHistory = JSON.parse(localStorage.getItem('gameHistory') || '[]');
       gameHistory.push({
@@ -50,6 +78,53 @@ const GameDetailPage: React.FC = () => {
       });
       localStorage.setItem('gameHistory', JSON.stringify(gameHistory));
     }
+  };
+
+  const handleSendSupportMessage = () => {
+    if (!supportMessage.trim()) {
+      toast.error("Please enter a message");
+      return;
+    }
+
+    if (!username) {
+      toast.error("You must be logged in to send a message");
+      return;
+    }
+
+    // Save the message to localStorage
+    const messages = JSON.parse(localStorage.getItem('customerServiceMessages') || '[]');
+    const newMessage = {
+      id: Date.now().toString(),
+      username,
+      message: supportMessage,
+      timestamp: new Date().toISOString(),
+      read: false,
+      replied: false
+    };
+
+    messages.push(newMessage);
+    localStorage.setItem('customerServiceMessages', JSON.stringify(messages));
+    
+    // Trigger an event for the admin notification
+    window.dispatchEvent(new Event('customerService:new-message'));
+    
+    toast.success("Your message has been sent to customer service!");
+    setSupportMessage('');
+  };
+
+  const viewSupportReplies = () => {
+    // Mark notifications as read
+    if (username) {
+      const notifications = JSON.parse(localStorage.getItem('userNotifications') || '{}');
+      if (notifications[username]) {
+        notifications[username] = notifications[username].map((n: any) => ({...n, read: true}));
+        localStorage.setItem('userNotifications', JSON.stringify(notifications));
+        setHasNotification(false);
+      }
+    }
+    
+    // You can expand this to show previous conversations
+    setShowSupport(true);
   };
   
   if (!game) {
@@ -69,10 +144,13 @@ const GameDetailPage: React.FC = () => {
           {/* Customer Support Float Button */}
           <div className="fixed bottom-6 right-6 z-10">
             <Button
-              className="rounded-full w-14 h-14 bg-casino-gold hover:bg-yellow-500 text-black shadow-lg flex items-center justify-center"
-              onClick={() => setShowSupport(!showSupport)}
+              className={`rounded-full w-14 h-14 ${hasNotification ? 'bg-red-500' : 'bg-casino-gold'} hover:bg-yellow-500 text-black shadow-lg flex items-center justify-center relative`}
+              onClick={viewSupportReplies}
             >
               <CircleDot className="h-6 w-6" />
+              {hasNotification && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 border-2 border-black rounded-full"></span>
+              )}
             </Button>
           </div>
           
@@ -82,34 +160,72 @@ const GameDetailPage: React.FC = () => {
               <div className="p-4 border-b border-casino-purple-dark flex justify-between items-center">
                 <h3 className="font-bold text-white">Customer Support</h3>
                 <Button variant="ghost" size="sm" onClick={() => setShowSupport(false)}>
-                  ✕
+                  <X className="h-4 w-4" />
                 </Button>
               </div>
               <div className="p-4 max-h-96 overflow-y-auto bg-casino-dark">
                 <p className="text-gray-300 text-sm mb-4">
                   Welcome to Gala Casino support! How can we help you today?
                 </p>
-                <div className="flex gap-2 flex-wrap">
-                  <Button size="sm" className="bg-casino-purple hover:bg-casino-purple-dark text-white text-xs">
-                    Promo Codes
-                  </Button>
-                  <Button size="sm" className="bg-casino-purple hover:bg-casino-purple-dark text-white text-xs">
-                    Deposit Issues
-                  </Button>
-                  <Button size="sm" className="bg-casino-purple hover:bg-casino-purple-dark text-white text-xs">
-                    Game Rules
-                  </Button>
-                </div>
-                <div className="mt-4">
-                  <textarea 
-                    className="w-full bg-casino-purple-dark border border-casino-purple text-white rounded-md p-2 text-sm"
-                    placeholder="Type your message here..."
-                    rows={3}
-                  />
-                  <Button className="w-full mt-2 bg-casino-gold text-black">
-                    Send Message
-                  </Button>
-                </div>
+                
+                {username && (
+                  <div>
+                    {/* Show any replies from customer support */}
+                    {(() => {
+                      const messages = JSON.parse(localStorage.getItem('customerServiceMessages') || '[]');
+                      const userMessages = messages.filter((m: any) => m.username === username && m.replied);
+                      
+                      return userMessages.length > 0 ? (
+                        <div className="space-y-3 mb-4 border-t border-b border-casino-purple-dark py-3">
+                          <h4 className="text-sm font-bold text-casino-gold">Recent Replies</h4>
+                          {userMessages.map((msg: any) => (
+                            <div key={msg.id} className="bg-casino-purple/30 rounded p-3">
+                              <div className="text-xs text-gray-400 mb-1">Your message: {msg.message}</div>
+                              <div className="bg-casino-purple rounded p-2 text-sm">
+                                <div className="text-xs text-casino-gold mb-1">Support reply:</div>
+                                {msg.reply}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : null;
+                    })()}
+                    
+                    <div className="flex gap-2 flex-wrap mb-4">
+                      <Button size="sm" className="bg-casino-purple hover:bg-casino-purple-dark text-white text-xs"
+                        onClick={() => setSupportMessage("I need information about promo codes")}
+                      >
+                        Promo Codes
+                      </Button>
+                      <Button size="sm" className="bg-casino-purple hover:bg-casino-purple-dark text-white text-xs"
+                        onClick={() => setSupportMessage("I'm having issues with my deposit")}
+                      >
+                        Deposit Issues
+                      </Button>
+                      <Button size="sm" className="bg-casino-purple hover:bg-casino-purple-dark text-white text-xs"
+                        onClick={() => setSupportMessage("I need help understanding the game rules")}
+                      >
+                        Game Rules
+                      </Button>
+                    </div>
+                    
+                    <div className="mt-4">
+                      <textarea 
+                        className="w-full bg-casino-purple-dark border border-casino-purple text-white rounded-md p-2 text-sm"
+                        placeholder="Type your message here..."
+                        rows={3}
+                        value={supportMessage}
+                        onChange={(e) => setSupportMessage(e.target.value)}
+                      />
+                      <Button 
+                        className="w-full mt-2 bg-casino-gold text-black"
+                        onClick={handleSendSupportMessage}
+                      >
+                        Send Message
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}

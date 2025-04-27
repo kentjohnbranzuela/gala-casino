@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Tag, Trash } from 'lucide-react';
+import { Tag, Trash, Eye, EyeOff } from 'lucide-react';
 
 interface PromoCode {
   id: string;
@@ -20,7 +20,7 @@ interface PromoCode {
   expiryDate: string;
   used: boolean;
   usedBy?: string;
-  isHidden?: boolean; // New property to hide promo codes from users
+  isHidden: boolean; // Changed to required property
 }
 
 const PromoCodeManagement: React.FC = () => {
@@ -37,7 +37,14 @@ const PromoCodeManagement: React.FC = () => {
         const storedCodes = localStorage.getItem('promoCodes');
         if (storedCodes) {
           const parsedCodes = JSON.parse(storedCodes);
-          setPromoCodes(parsedCodes);
+          // Make sure all codes have the isHidden property
+          const updatedCodes = parsedCodes.map((code: any) => ({
+            ...code,
+            isHidden: code.isHidden !== undefined ? code.isHidden : true
+          }));
+          setPromoCodes(updatedCodes);
+          // Update storage with corrected data
+          localStorage.setItem('promoCodes', JSON.stringify(updatedCodes));
         } else {
           // Initialize with empty array if none found
           localStorage.setItem('promoCodes', JSON.stringify([]));
@@ -81,6 +88,10 @@ const PromoCodeManagement: React.FC = () => {
     setPromoCodes(updatedCodes);
     localStorage.setItem('promoCodes', JSON.stringify(updatedCodes));
     
+    // Create a separate list for public promo codes
+    const publicCodes = updatedCodes.filter(code => !code.isHidden);
+    localStorage.setItem('publicPromoCodes', JSON.stringify(publicCodes));
+    
     // Reset form
     setNewCode('');
     setNewBonus('');
@@ -94,6 +105,11 @@ const PromoCodeManagement: React.FC = () => {
     const updatedCodes = promoCodes.filter(code => code.id !== id);
     setPromoCodes(updatedCodes);
     localStorage.setItem('promoCodes', JSON.stringify(updatedCodes));
+    
+    // Update public codes list
+    const publicCodes = updatedCodes.filter(code => !code.isHidden);
+    localStorage.setItem('publicPromoCodes', JSON.stringify(publicCodes));
+    
     toast.success('Promo code deleted successfully');
   };
 
@@ -106,6 +122,11 @@ const PromoCodeManagement: React.FC = () => {
     });
     setPromoCodes(updatedCodes);
     localStorage.setItem('promoCodes', JSON.stringify(updatedCodes));
+    
+    // Update public codes list
+    const publicCodes = updatedCodes.filter(code => !code.isHidden);
+    localStorage.setItem('publicPromoCodes', JSON.stringify(publicCodes));
+    
     toast.success('Promo code visibility updated');
   };
 
@@ -200,11 +221,19 @@ const PromoCodeManagement: React.FC = () => {
                     <TableCell>
                       <Button 
                         size="sm" 
-                        variant={code.isHidden ? "default" : "outline"}
+                        variant="outline"
                         onClick={() => toggleHidden(code.id)}
-                        className={code.isHidden ? "bg-casino-purple" : ""}
+                        className={`flex items-center ${code.isHidden ? 'bg-red-900/30 text-red-300' : 'bg-green-900/30 text-green-300'}`}
                       >
-                        {code.isHidden ? 'Hidden' : 'Visible'}
+                        {code.isHidden ? (
+                          <>
+                            <EyeOff className="w-4 h-4 mr-1" /> Hidden
+                          </>
+                        ) : (
+                          <>
+                            <Eye className="w-4 h-4 mr-1" /> Visible
+                          </>
+                        )}
                       </Button>
                     </TableCell>
                     <TableCell>

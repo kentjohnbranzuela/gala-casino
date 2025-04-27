@@ -1,9 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Wallet, Coins, LogOut, User } from 'lucide-react';
+import { Wallet, Coins, LogOut, User, Mail } from 'lucide-react';
 import DepositModal from '../modals/DepositModal';
-import WithdrawModal from '../modals/WithdrawModal';
+import WithdrawalModal from '../modals/WithdrawModal';
 import { Avatar, AvatarFallback } from '../ui/avatar';
 import {
   DropdownMenu,
@@ -17,6 +18,7 @@ const Header = () => {
   const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
   const [balance, setBalance] = useState(0);
+  const [hasNewMessages, setHasNewMessages] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   
@@ -54,6 +56,37 @@ const Header = () => {
     };
   }, [username, isAdmin]);
 
+  useEffect(() => {
+    // Check for unread customer service messages
+    if (isAdmin) {
+      const checkForNewMessages = () => {
+        const storedMessages = localStorage.getItem('customerServiceMessages');
+        if (storedMessages) {
+          const messages = JSON.parse(storedMessages);
+          const unreadMessages = messages.filter((msg: any) => !msg.read);
+          setHasNewMessages(unreadMessages.length > 0);
+        }
+      };
+      
+      checkForNewMessages();
+      
+      // Check every 30 seconds for new messages
+      const interval = setInterval(checkForNewMessages, 30000);
+      
+      // Listen for new customer service messages
+      const handleNewMessage = () => {
+        checkForNewMessages();
+      };
+      
+      window.addEventListener('customerService:new-message', handleNewMessage);
+      
+      return () => {
+        clearInterval(interval);
+        window.removeEventListener('customerService:new-message', handleNewMessage);
+      };
+    }
+  }, [isAdmin]);
+
   const isActive = (path: string) => {
     return location.pathname === path ? 'active' : '';
   };
@@ -88,7 +121,19 @@ const Header = () => {
                 </>
               )}
               {isAdmin && (
-                <Link to="/admin" className={`nav-link ${isActive('/admin')}`}>Admin Panel</Link>
+                <>
+                  <Link to="/admin" className={`nav-link ${isActive('/admin')}`}>Admin Panel</Link>
+                  <Button 
+                    variant="ghost" 
+                    className="relative"
+                    onClick={() => navigate('/admin?tab=support')}
+                  >
+                    <Mail className="w-5 h-5" />
+                    {hasNewMessages && (
+                      <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full"></span>
+                    )}
+                  </Button>
+                </>
               )}
             </nav>
             
