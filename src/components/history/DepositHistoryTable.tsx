@@ -5,9 +5,9 @@ interface Deposit {
   id: string;
   user: string;
   method: string;
-  reference: string;
+  reference?: string;
   date: string;
-  amount: number;
+  amount: number | null;
   status: 'pending' | 'approved' | 'rejected';
 }
 
@@ -50,6 +50,12 @@ const DepositHistoryTable: React.FC = () => {
     };
   }, [username]);
 
+  // Safely format amount with fallback
+  const formatAmount = (amount: number | null | undefined) => {
+    if (amount === null || amount === undefined) return '₱0';
+    return `₱${amount.toLocaleString()}`;
+  };
+
   return (
     <div className="bg-card border border-casino-purple-dark rounded-md overflow-hidden">
       <div className="overflow-x-auto">
@@ -73,17 +79,17 @@ const DepositHistoryTable: React.FC = () => {
             ) : (
               depositHistory.map((item) => (
                 <tr key={item.id}>
-                  <td>{item.method}</td>
-                  <td>{item.id}</td>
-                  <td>{new Date(item.date).toLocaleString()}</td>
-                  <td>₱{item.amount.toLocaleString()}</td>
+                  <td>{item.method || 'Unknown'}</td>
+                  <td>{item.id || 'N/A'}</td>
+                  <td>{item.date ? new Date(item.date).toLocaleString() : 'Unknown Date'}</td>
+                  <td>{formatAmount(item.amount)}</td>
                   <td>
                     <span className={`status-badge ${
                       item.status === 'pending' ? 'status-processing' : 
                       item.status === 'approved' ? 'status-success' :
                       'status-failed'
                     }`}>
-                      {item.status.toUpperCase()}
+                      {(item.status || 'unknown').toUpperCase()}
                     </span>
                   </td>
                 </tr>

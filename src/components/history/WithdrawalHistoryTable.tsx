@@ -3,10 +3,11 @@ import React, { useState, useEffect } from 'react';
 
 interface Withdrawal {
   id: string;
+  user: string;
   method: string;
-  reference: string;
+  reference?: string;
   date: string;
-  amount: number;
+  amount: number | null;
   status: 'processing' | 'transferring' | 'success' | 'rejected';
 }
 
@@ -49,6 +50,12 @@ const WithdrawalHistoryTable: React.FC = () => {
     };
   }, [username]);
 
+  // Safely format amount with fallback
+  const formatAmount = (amount: number | null | undefined) => {
+    if (amount === null || amount === undefined) return '₱0';
+    return `₱${amount.toLocaleString()}`;
+  };
+
   return (
     <div className="bg-card border border-casino-purple-dark rounded-md overflow-hidden">
       <div className="overflow-x-auto">
@@ -72,10 +79,10 @@ const WithdrawalHistoryTable: React.FC = () => {
             ) : (
               withdrawalHistory.map((item) => (
                 <tr key={item.id}>
-                  <td>{item.method}</td>
-                  <td>{item.id}</td>
-                  <td>{new Date(item.date).toLocaleString()}</td>
-                  <td>₱{item.amount.toLocaleString()}</td>
+                  <td>{item.method || 'Unknown'}</td>
+                  <td>{item.id || 'N/A'}</td>
+                  <td>{item.date ? new Date(item.date).toLocaleString() : 'Unknown Date'}</td>
+                  <td>{formatAmount(item.amount)}</td>
                   <td>
                     <span className={`status-badge ${
                       item.status === 'processing' ? 'status-processing' : 
@@ -83,7 +90,7 @@ const WithdrawalHistoryTable: React.FC = () => {
                       item.status === 'success' ? 'status-success' :
                       'status-failed'
                     }`}>
-                      {item.status.toUpperCase()}
+                      {(item.status || 'unknown').toUpperCase()}
                     </span>
                   </td>
                 </tr>
