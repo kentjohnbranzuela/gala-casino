@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,24 +13,101 @@ const UserProfile: React.FC = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [newUsername, setNewUsername] = useState('');
-  
-  // Mock deposit history - in a real app, this would come from a database
-  const depositHistory = [
-    { id: '1', method: 'GCash', amount: 1000, date: '2025-04-24', status: 'completed' },
-    { id: '2', method: 'Bank Transfer', amount: 5000, date: '2025-04-22', status: 'completed' },
-  ];
-  
-  // Mock withdrawal history - would be fetched from storage
-  const withdrawalHistory = [
-    { id: '1', method: 'GCash', amount: 2000, date: '2025-04-24', status: 'processing' },
-    { id: '2', method: 'Bank Transfer', amount: 3000, date: '2025-04-21', status: 'transferring' },
-    { id: '3', method: 'GCash', amount: 1500, date: '2025-04-20', status: 'success' },
-  ];
-  
-  // Mock promo codes - would be fetched from storage
-  const promoCodes = [
-    { code: 'WELCOME100', bonus: 100, expiryDate: '2025-05-30', used: false },
-  ];
+  const [userBalance, setUserBalance] = useState(0);
+  const [withdrawalHistory, setWithdrawalHistory] = useState<any[]>([]);
+  const [depositHistory, setDepositHistory] = useState<any[]>([]);
+  const [promoCodes, setPromoCodes] = useState<any[]>([]);
+
+  useEffect(() => {
+    // Get user's balance from localStorage
+    const getUserBalance = () => {
+      try {
+        const storedUsers = localStorage.getItem('registeredUsers');
+        if (storedUsers) {
+          const users = JSON.parse(storedUsers);
+          const currentUser = users.find((user: any) => user.username === username);
+          if (currentUser) {
+            setUserBalance(currentUser.balance || 0);
+          }
+        }
+      } catch (error) {
+        console.error("Error getting user balance:", error);
+      }
+    };
+
+    // Get withdrawal history
+    const getWithdrawalHistory = () => {
+      try {
+        const storedWithdrawals = localStorage.getItem('withdrawalRequests');
+        if (storedWithdrawals) {
+          const allWithdrawals = JSON.parse(storedWithdrawals);
+          const userWithdrawals = allWithdrawals.filter((withdrawal: any) => 
+            withdrawal.user === username
+          );
+          setWithdrawalHistory(userWithdrawals);
+        } else {
+          setWithdrawalHistory([]);
+        }
+      } catch (error) {
+        console.error("Error loading withdrawals:", error);
+        setWithdrawalHistory([]);
+      }
+    };
+
+    // Get deposit history
+    const getDepositHistory = () => {
+      try {
+        const storedDeposits = localStorage.getItem('depositRequests');
+        if (storedDeposits) {
+          const allDeposits = JSON.parse(storedDeposits);
+          const userDeposits = allDeposits.filter((deposit: any) => 
+            deposit.user === username
+          );
+          setDepositHistory(userDeposits);
+        } else {
+          setDepositHistory([]);
+        }
+      } catch (error) {
+        console.error("Error loading deposits:", error);
+        setDepositHistory([]);
+      }
+    };
+
+    // Get promo codes
+    const getPromoCodes = () => {
+      try {
+        const storedPromoCodes = localStorage.getItem('promoCodes');
+        if (storedPromoCodes) {
+          const parsedPromoCodes = JSON.parse(storedPromoCodes);
+          setPromoCodes(parsedPromoCodes);
+        } else {
+          setPromoCodes([]);
+        }
+      } catch (error) {
+        console.error("Error loading promo codes:", error);
+        setPromoCodes([]);
+      }
+    };
+
+    getUserBalance();
+    getWithdrawalHistory();
+    getDepositHistory();
+    getPromoCodes();
+
+    // Set up event listener to reload data when localStorage changes
+    const handleStorageChange = () => {
+      getUserBalance();
+      getWithdrawalHistory();
+      getDepositHistory();
+      getPromoCodes();
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [username]);
   
   const handleUpdatePassword = () => {
     if (!currentPassword) {
@@ -117,19 +194,46 @@ const UserProfile: React.FC = () => {
   
   const redeemPromoCode = (code: string) => {
     const storedUsers = localStorage.getItem('registeredUsers');
-    if (storedUsers) {
+    const storedPromoCodes = localStorage.getItem('promoCodes');
+    
+    if (storedUsers && storedPromoCodes) {
       const users = JSON.parse(storedUsers);
+      const promoCodes = JSON.parse(storedPromoCodes);
       const currentUser = users.find((user: any) => user.username === username);
+      const promoCode = promoCodes.find((promo: any) => promo.code === code);
       
-      if (currentUser) {
-        toast.success(`Promo code ${code} redeemed!`);
+      if (currentUser && promoCode && !promoCode.used) {
+        // Update user's balance
+        const updatedUsers = users.map((user: any) => {
+          if (user.username === username) {
+            return { 
+              ...user, 
+              balance: (user.balance || 0) + promoCode.amount 
+            };
+          }
+          return user;
+        });
         
-        // Mark code as used - in real app this would update the database
-        const updatedPromoCodes = promoCodes.map(promo => 
-          promo.code === code ? { ...promo, used: true } : promo
+        // Mark promo code as used
+        const updatedPromoCodes = promoCodes.map((promo: any) => 
+          promo.code === code ? { ...promo, used: true, redeemedBy: username } : promo
         );
         
-        // In real app, would update user's balance in database
+        localStorage.setItem('registeredUsers', JSON.stringify(updatedUsers));
+        localStorage.setItem('promoCodes', JSON.stringify(updatedPromoCodes));
+        
+        toast.success(`Promo code ${code} redeemed! ₱${promoCode.amount} added to your balance.`);
+        
+        // Update UI
+        setPromoCodes(updatedPromoCodes);
+        setUserBalance((prev) => prev + promoCode.amount);
+        
+        // Trigger storage event to update other components
+        window.dispatchEvent(new Event('storage'));
+      } else if (promoCode && promoCode.used) {
+        toast.error('This promo code has already been used');
+      } else {
+        toast.error('Invalid promo code');
       }
     }
   };
@@ -137,6 +241,19 @@ const UserProfile: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold mb-6 text-casino-gold">User Profile</h1>
+      
+      <div className="mb-6 p-4 bg-card rounded-lg border border-casino-purple-dark">
+        <div className="flex flex-col md:flex-row justify-between items-center">
+          <div>
+            <h2 className="text-lg font-medium">Welcome, {username}</h2>
+            <p className="text-sm text-gray-400">Account Level: Regular</p>
+          </div>
+          <div className="mt-4 md:mt-0">
+            <p className="text-sm text-gray-400">Balance</p>
+            <p className="text-2xl font-bold text-casino-gold">₱{userBalance.toLocaleString()}</p>
+          </div>
+        </div>
+      </div>
       
       <Tabs defaultValue="security" className="w-full">
         <TabsList className="grid grid-cols-4 mb-8">
@@ -251,30 +368,37 @@ const UserProfile: React.FC = () => {
                   <thead>
                     <tr>
                       <th>Method</th>
+                      <th>Reference</th>
                       <th>Amount</th>
                       <th>Date</th>
                       <th>Status</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {depositHistory.map((deposit) => (
-                      <tr key={deposit.id}>
-                        <td>{deposit.method}</td>
-                        <td>₱{deposit.amount.toLocaleString()}</td>
-                        <td>{deposit.date}</td>
-                        <td>
-                          <span className="status-badge status-success">
-                            COMPLETED
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                    {depositHistory.length === 0 && (
+                    {depositHistory.length === 0 ? (
                       <tr>
-                        <td colSpan={4} className="text-center py-4">
+                        <td colSpan={5} className="text-center py-4 text-gray-400">
                           No deposit history found
                         </td>
                       </tr>
+                    ) : (
+                      depositHistory.map((deposit) => (
+                        <tr key={deposit.id}>
+                          <td>{deposit.method}</td>
+                          <td>{deposit.id}</td>
+                          <td>₱{deposit.amount.toLocaleString()}</td>
+                          <td>{new Date(deposit.requestDate).toLocaleString()}</td>
+                          <td>
+                            <span className={`status-badge ${
+                              deposit.status === 'pending' ? 'status-processing' : 
+                              deposit.status === 'approved' ? 'status-success' :
+                              'status-failed'
+                            }`}>
+                              {deposit.status.toUpperCase()}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
                     )}
                   </tbody>
                 </table>
@@ -295,36 +419,38 @@ const UserProfile: React.FC = () => {
                   <thead>
                     <tr>
                       <th>Method</th>
+                      <th>Reference</th>
                       <th>Amount</th>
                       <th>Date</th>
                       <th>Status</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {withdrawalHistory.map((withdrawal) => (
-                      <tr key={withdrawal.id}>
-                        <td>{withdrawal.method}</td>
-                        <td>₱{withdrawal.amount.toLocaleString()}</td>
-                        <td>{withdrawal.date}</td>
-                        <td>
-                          <span className={`status-badge ${
-                            withdrawal.status === 'processing' ? 'status-processing' : 
-                            withdrawal.status === 'transferring' ? 'status-transferring' : 
-                            'status-success'
-                          }`}>
-                            {withdrawal.status === 'processing' ? 'PROCESSING' : 
-                             withdrawal.status === 'transferring' ? 'TRANSFERRING' : 
-                             'SUCCESS'}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                    {withdrawalHistory.length === 0 && (
+                    {withdrawalHistory.length === 0 ? (
                       <tr>
-                        <td colSpan={4} className="text-center py-4">
+                        <td colSpan={5} className="text-center py-4 text-gray-400">
                           No withdrawal history found
                         </td>
                       </tr>
+                    ) : (
+                      withdrawalHistory.map((withdrawal) => (
+                        <tr key={withdrawal.id}>
+                          <td>{withdrawal.method}</td>
+                          <td>{withdrawal.id}</td>
+                          <td>₱{withdrawal.amount.toLocaleString()}</td>
+                          <td>{new Date(withdrawal.requestDate).toLocaleString()}</td>
+                          <td>
+                            <span className={`status-badge ${
+                              withdrawal.status === 'processing' ? 'status-processing' : 
+                              withdrawal.status === 'transferring' ? 'status-transferring' : 
+                              withdrawal.status === 'success' ? 'status-success' :
+                              'status-failed'
+                            }`}>
+                              {withdrawal.status.toUpperCase()}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
                     )}
                   </tbody>
                 </table>
@@ -352,34 +478,34 @@ const UserProfile: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {promoCodes.map((promo) => (
-                      <tr key={promo.code}>
-                        <td>{promo.code}</td>
-                        <td>₱{promo.bonus.toLocaleString()}</td>
-                        <td>{promo.expiryDate}</td>
-                        <td>{promo.used ? 'Used' : 'Available'}</td>
-                        <td>
-                          {!promo.used && (
-                            <Button 
-                              size="sm" 
-                              className="btn-casino"
-                              onClick={() => redeemPromoCode(promo.code)}
-                            >
-                              Redeem
-                            </Button>
-                          )}
-                          {promo.used && (
-                            <span className="text-sm text-muted-foreground">Already redeemed</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                    {promoCodes.length === 0 && (
+                    {promoCodes.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="text-center py-4">
+                        <td colSpan={5} className="text-center py-4 text-gray-400">
                           No promo codes available
                         </td>
                       </tr>
+                    ) : (
+                      promoCodes.map((promo) => (
+                        <tr key={promo.code}>
+                          <td>{promo.code}</td>
+                          <td>₱{promo.amount.toLocaleString()}</td>
+                          <td>{promo.expiryDate}</td>
+                          <td>{promo.used ? 'Used' : 'Available'}</td>
+                          <td>
+                            {!promo.used ? (
+                              <Button 
+                                size="sm" 
+                                className="btn-casino"
+                                onClick={() => redeemPromoCode(promo.code)}
+                              >
+                                Redeem
+                              </Button>
+                            ) : (
+                              <span className="text-sm text-muted-foreground">Already redeemed</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))
                     )}
                   </tbody>
                 </table>

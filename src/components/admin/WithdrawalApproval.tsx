@@ -26,29 +26,9 @@ const WithdrawalApproval: React.FC = () => {
           const parsedWithdrawals = JSON.parse(storedWithdrawals);
           setWithdrawals(parsedWithdrawals);
         } else {
-          // Initialize with mock data if none found
-          const initialWithdrawals: Withdrawal[] = [
-            {
-              id: 'w1',
-              user: 'User123',
-              method: 'GCash',
-              accountNumber: '09876543210',
-              amount: 1500,
-              requestDate: '2025-04-24T15:30:00',
-              status: 'processing',
-            },
-            {
-              id: 'w2',
-              user: 'User456',
-              method: 'Bank Transfer',
-              accountNumber: '1234567890',
-              amount: 3000,
-              requestDate: '2025-04-24T14:15:00',
-              status: 'processing',
-            },
-          ];
-          localStorage.setItem('withdrawalRequests', JSON.stringify(initialWithdrawals));
-          setWithdrawals(initialWithdrawals);
+          // Initialize with empty array
+          localStorage.setItem('withdrawalRequests', JSON.stringify([]));
+          setWithdrawals([]);
         }
       } catch (error) {
         console.error("Error loading withdrawals:", error);
@@ -81,13 +61,31 @@ const WithdrawalApproval: React.FC = () => {
     setWithdrawals(updatedWithdrawals);
     localStorage.setItem('withdrawalRequests', JSON.stringify(updatedWithdrawals));
     
+    // Get the withdrawal for notifications
+    const withdrawal = withdrawals.find(w => w.id === id);
+    
     // Show success message
     if (newStatus === 'transferring') {
       toast.success('Withdrawal marked as transferring');
+      
+      // Simulate SMS notification
+      if (withdrawal) {
+        console.log(`SMS notification sent to ${withdrawal.accountNumber}: Your withdrawal of ₱${withdrawal.amount} is now being transferred.`);
+      }
     } else if (newStatus === 'success') {
       toast.success('Withdrawal approved and completed');
+      
+      // Simulate SMS notification
+      if (withdrawal) {
+        console.log(`SMS notification sent to ${withdrawal.accountNumber}: Your withdrawal of ₱${withdrawal.amount} has been successfully completed.`);
+      }
     } else {
       toast.error('Withdrawal rejected');
+      
+      // Simulate SMS notification for rejection
+      if (withdrawal) {
+        console.log(`SMS notification sent to ${withdrawal.accountNumber}: Your withdrawal request of ₱${withdrawal.amount} has been rejected.`);
+      }
     }
     
     // Trigger event to update user's withdrawal history

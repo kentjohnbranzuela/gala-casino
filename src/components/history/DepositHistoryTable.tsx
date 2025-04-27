@@ -1,43 +1,55 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
-// Mock data for deposit history
-const depositHistory = [
-  {
-    id: '1',
-    method: 'GCash',
-    reference: 'GC2504251',
-    date: '2025-04-24T16:30:00',
-    amount: 1000,
-    status: 'success',
-  },
-  {
-    id: '2',
-    method: 'GCash',
-    reference: 'GC2504242',
-    date: '2025-04-24T10:15:00',
-    amount: 500,
-    status: 'success',
-  },
-  {
-    id: '3',
-    method: 'GCash',
-    reference: 'GC2504233',
-    date: '2025-04-23T14:20:00',
-    amount: 2000,
-    status: 'success',
-  },
-  {
-    id: '4',
-    method: 'Bank Transfer',
-    reference: 'BT2504224',
-    date: '2025-04-22T11:45:00',
-    amount: 5000,
-    status: 'success',
-  },
-];
+interface Deposit {
+  id: string;
+  user: string;
+  method: string;
+  reference: string;
+  date: string;
+  amount: number;
+  status: 'pending' | 'approved' | 'rejected';
+}
 
 const DepositHistoryTable: React.FC = () => {
+  const [depositHistory, setDepositHistory] = useState<Deposit[]>([]);
+  const username = localStorage.getItem('username') || '';
+  
+  useEffect(() => {
+    // Load deposit history from localStorage
+    const loadDeposits = () => {
+      try {
+        const storedDeposits = localStorage.getItem('depositRequests');
+        if (storedDeposits) {
+          const allDeposits = JSON.parse(storedDeposits);
+          // Filter only for current user
+          const userDeposits = allDeposits.filter((deposit: any) => 
+            deposit.user === username
+          );
+          setDepositHistory(userDeposits);
+        } else {
+          setDepositHistory([]);
+        }
+      } catch (error) {
+        console.error("Error loading deposits:", error);
+        setDepositHistory([]);
+      }
+    };
+    
+    loadDeposits();
+    
+    // Reload when localStorage changes
+    const handleStorageChange = () => {
+      loadDeposits();
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [username]);
+
   return (
     <div className="bg-card border border-casino-purple-dark rounded-md overflow-hidden">
       <div className="overflow-x-auto">
@@ -52,19 +64,31 @@ const DepositHistoryTable: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {depositHistory.map((item) => (
-              <tr key={item.id}>
-                <td>{item.method}</td>
-                <td>{item.reference}</td>
-                <td>{new Date(item.date).toLocaleString()}</td>
-                <td>₱{item.amount.toLocaleString()}</td>
-                <td>
-                  <span className="status-badge status-success">
-                    SUCCESS
-                  </span>
+            {depositHistory.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="text-center py-4 text-gray-400">
+                  No deposit history found
                 </td>
               </tr>
-            ))}
+            ) : (
+              depositHistory.map((item) => (
+                <tr key={item.id}>
+                  <td>{item.method}</td>
+                  <td>{item.id}</td>
+                  <td>{new Date(item.date).toLocaleString()}</td>
+                  <td>₱{item.amount.toLocaleString()}</td>
+                  <td>
+                    <span className={`status-badge ${
+                      item.status === 'pending' ? 'status-processing' : 
+                      item.status === 'approved' ? 'status-success' :
+                      'status-failed'
+                    }`}>
+                      {item.status.toUpperCase()}
+                    </span>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

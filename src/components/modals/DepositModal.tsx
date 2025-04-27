@@ -11,7 +11,9 @@ interface DepositModalProps {
 
 const DepositModal: React.FC<DepositModalProps> = ({ onClose }) => {
   const [amount, setAmount] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const username = localStorage.getItem('username') || '';
   
   const handleDeposit = () => {
     if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
@@ -19,16 +21,51 @@ const DepositModal: React.FC<DepositModalProps> = ({ onClose }) => {
       return;
     }
     
+    if (!phoneNumber) {
+      toast.error('Please enter your phone number');
+      return;
+    }
+    
     setIsProcessing(true);
     
-    // Simulate processing
-    setTimeout(() => {
-      setIsProcessing(false);
-      toast.success(`Deposit request of ₱${amount} sent successfully`);
-      onClose();
+    try {
+      // Create deposit request
+      const depositId = `D${Date.now()}`;
+      const depositRequest = {
+        id: depositId,
+        user: username,
+        method: 'GCash',
+        accountNumber: phoneNumber,
+        amount: Number(amount),
+        requestDate: new Date().toISOString(),
+        status: 'pending'
+      };
       
-      // In a real app, you'd save this to a database
-    }, 1500);
+      // Save deposit request to localStorage
+      const storedDeposits = localStorage.getItem('depositRequests');
+      let deposits = [];
+      
+      if (storedDeposits) {
+        deposits = JSON.parse(storedDeposits);
+      }
+      
+      deposits.push(depositRequest);
+      localStorage.setItem('depositRequests', JSON.stringify(deposits));
+      
+      // Trigger event for admin panel update
+      window.dispatchEvent(new Event('storage'));
+      
+      toast.success(`Deposit request of ₱${amount} is being processed`);
+      
+      // Simulate SMS notification
+      console.log(`SMS notification sent to ${phoneNumber}: Your deposit request of ₱${amount} has been received and is pending approval.`);
+      
+      onClose();
+    } catch (error) {
+      console.error("Deposit error:", error);
+      toast.error('An error occurred during deposit request');
+      setIsProcessing(false);
+    }
   };
   
   return (
@@ -45,6 +82,19 @@ const DepositModal: React.FC<DepositModalProps> = ({ onClose }) => {
             <h4 className="text-lg font-medium text-white">GCash Payment</h4>
             <p className="text-sm text-gray-300 mt-1">Send funds to the following number:</p>
             <p className="text-casino-gold font-medium mt-1">09917104135</p>
+          </div>
+          
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-300">
+              Your Phone Number
+            </label>
+            <Input
+              type="text"
+              placeholder="Enter your phone number"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+              className="bg-muted border-casino-purple-dark"
+            />
           </div>
           
           <div className="space-y-2">
@@ -79,7 +129,7 @@ const DepositModal: React.FC<DepositModalProps> = ({ onClose }) => {
           </div>
           
           <div className="text-xs text-gray-400 mt-2">
-            <p>After sending, your account will be credited once payment is confirmed.</p>
+            <p>After sending, your deposit request will be reviewed. Your account will be credited once payment is confirmed by admin.</p>
           </div>
         </div>
       </DialogContent>
