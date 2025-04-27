@@ -109,6 +109,12 @@ const UserProfile: React.FC = () => {
     };
   }, [username]);
   
+  // Safely format amount with fallback
+  const formatAmount = (amount: number | null | undefined) => {
+    if (amount === null || amount === undefined) return '₱0';
+    return `₱${amount.toLocaleString()}`;
+  };
+  
   const handleUpdatePassword = () => {
     if (!currentPassword) {
       toast.error('Please enter your current password');
@@ -384,17 +390,17 @@ const UserProfile: React.FC = () => {
                     ) : (
                       depositHistory.map((deposit) => (
                         <tr key={deposit.id}>
-                          <td>{deposit.method}</td>
-                          <td>{deposit.id}</td>
-                          <td>₱{deposit.amount.toLocaleString()}</td>
-                          <td>{new Date(deposit.requestDate).toLocaleString()}</td>
+                          <td>{deposit.method || 'Unknown'}</td>
+                          <td>{deposit.id || 'N/A'}</td>
+                          <td>{formatAmount(deposit.amount)}</td>
+                          <td>{deposit.requestDate ? new Date(deposit.requestDate).toLocaleString() : 'Unknown Date'}</td>
                           <td>
                             <span className={`status-badge ${
                               deposit.status === 'pending' ? 'status-processing' : 
                               deposit.status === 'approved' ? 'status-success' :
                               'status-failed'
                             }`}>
-                              {deposit.status.toUpperCase()}
+                              {(deposit.status || 'unknown').toUpperCase()}
                             </span>
                           </td>
                         </tr>
@@ -435,10 +441,10 @@ const UserProfile: React.FC = () => {
                     ) : (
                       withdrawalHistory.map((withdrawal) => (
                         <tr key={withdrawal.id}>
-                          <td>{withdrawal.method}</td>
-                          <td>{withdrawal.id}</td>
-                          <td>₱{withdrawal.amount.toLocaleString()}</td>
-                          <td>{new Date(withdrawal.requestDate).toLocaleString()}</td>
+                          <td>{withdrawal.method || 'Unknown'}</td>
+                          <td>{withdrawal.id || 'N/A'}</td>
+                          <td>{formatAmount(withdrawal.amount)}</td>
+                          <td>{withdrawal.requestDate ? new Date(withdrawal.requestDate).toLocaleString() : 'Unknown Date'}</td>
                           <td>
                             <span className={`status-badge ${
                               withdrawal.status === 'processing' ? 'status-processing' : 
@@ -446,7 +452,7 @@ const UserProfile: React.FC = () => {
                               withdrawal.status === 'success' ? 'status-success' :
                               'status-failed'
                             }`}>
-                              {withdrawal.status.toUpperCase()}
+                              {(withdrawal.status || 'unknown').toUpperCase()}
                             </span>
                           </td>
                         </tr>
@@ -488,8 +494,8 @@ const UserProfile: React.FC = () => {
                       promoCodes.map((promo) => (
                         <tr key={promo.code}>
                           <td>{promo.code}</td>
-                          <td>₱{promo.amount.toLocaleString()}</td>
-                          <td>{promo.expiryDate}</td>
+                          <td>{formatAmount(promo.amount)}</td>
+                          <td>{promo.expiryDate || 'No expiry'}</td>
                           <td>{promo.used ? 'Used' : 'Available'}</td>
                           <td>
                             {!promo.used ? (
