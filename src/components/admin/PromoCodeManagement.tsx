@@ -20,6 +20,7 @@ interface PromoCode {
   expiryDate: string;
   used: boolean;
   usedBy?: string;
+  isHidden?: boolean; // New property to hide promo codes from users
 }
 
 const PromoCodeManagement: React.FC = () => {
@@ -27,6 +28,7 @@ const PromoCodeManagement: React.FC = () => {
   const [newCode, setNewCode] = useState('');
   const [newBonus, setNewBonus] = useState('');
   const [newExpiryDate, setNewExpiryDate] = useState('');
+  const [isHidden, setIsHidden] = useState(true); // Default to hidden
   
   useEffect(() => {
     // Load promo codes from localStorage
@@ -71,7 +73,8 @@ const PromoCodeManagement: React.FC = () => {
       code: newCode.toUpperCase(),
       bonus: Number(newBonus),
       expiryDate: newExpiryDate,
-      used: false
+      used: false,
+      isHidden: isHidden
     };
     
     const updatedCodes = [...promoCodes, newPromoCode];
@@ -82,6 +85,7 @@ const PromoCodeManagement: React.FC = () => {
     setNewCode('');
     setNewBonus('');
     setNewExpiryDate('');
+    setIsHidden(true);
     
     toast.success('Promo code created successfully');
   };
@@ -93,12 +97,24 @@ const PromoCodeManagement: React.FC = () => {
     toast.success('Promo code deleted successfully');
   };
 
+  const toggleHidden = (id: string) => {
+    const updatedCodes = promoCodes.map(code => {
+      if (code.id === id) {
+        return { ...code, isHidden: !code.isHidden };
+      }
+      return code;
+    });
+    setPromoCodes(updatedCodes);
+    localStorage.setItem('promoCodes', JSON.stringify(updatedCodes));
+    toast.success('Promo code visibility updated');
+  };
+
   return (
     <div className="space-y-6">
       <div className="bg-card border border-casino-purple-dark rounded-lg p-6">
         <h2 className="text-xl font-semibold text-casino-gold mb-4">Promo Code Management</h2>
         
-        <div className="grid md:grid-cols-4 gap-4 mb-6">
+        <div className="grid md:grid-cols-5 gap-4 mb-6">
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">Code</label>
             <Input
@@ -127,6 +143,18 @@ const PromoCodeManagement: React.FC = () => {
               className="bg-muted border-casino-purple-dark"
             />
           </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">Hidden from Users</label>
+            <div className="flex items-center h-10">
+              <input 
+                type="checkbox" 
+                checked={isHidden} 
+                onChange={() => setIsHidden(!isHidden)}
+                className="w-5 h-5 mr-2"
+              />
+              <span className="text-white">{isHidden ? 'Yes' : 'No'}</span>
+            </div>
+          </div>
           <div className="flex items-end">
             <Button 
               onClick={handleCreatePromoCode} 
@@ -146,13 +174,14 @@ const PromoCodeManagement: React.FC = () => {
                 <TableHead>Expiry Date</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Used By</TableHead>
+                <TableHead>Visibility</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {promoCodes.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-4 text-gray-400">
+                  <TableCell colSpan={7} className="text-center py-4 text-gray-400">
                     No promo codes created yet
                   </TableCell>
                 </TableRow>
@@ -168,6 +197,16 @@ const PromoCodeManagement: React.FC = () => {
                       </span>
                     </TableCell>
                     <TableCell>{code.usedBy || '-'}</TableCell>
+                    <TableCell>
+                      <Button 
+                        size="sm" 
+                        variant={code.isHidden ? "default" : "outline"}
+                        onClick={() => toggleHidden(code.id)}
+                        className={code.isHidden ? "bg-casino-purple" : ""}
+                      >
+                        {code.isHidden ? 'Hidden' : 'Visible'}
+                      </Button>
+                    </TableCell>
                     <TableCell>
                       <Button 
                         variant="destructive" 

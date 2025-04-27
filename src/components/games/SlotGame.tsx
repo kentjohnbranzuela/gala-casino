@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface SlotGameProps {
   onWin?: (amount: number) => void;
@@ -9,6 +10,7 @@ interface SlotGameProps {
 }
 
 const SYMBOLS = ['🍒', '🍋', '🍊', '🍇', '🔔', '💎', '7️⃣'];
+const BET_OPTIONS = [10, 20, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000];
 
 const SlotGame: React.FC<SlotGameProps> = ({ onWin, initialBet = 100 }) => {
   const [reels, setReels] = useState<string[]>(['❓', '❓', '❓']);
@@ -17,6 +19,38 @@ const SlotGame: React.FC<SlotGameProps> = ({ onWin, initialBet = 100 }) => {
   const [balance, setBalance] = useState(1000);
   const [winAmount, setWinAmount] = useState(0);
 
+  useEffect(() => {
+    // Fetch user's balance from localStorage when component mounts
+    const username = localStorage.getItem('username');
+    if (username) {
+      const storedUsers = localStorage.getItem('registeredUsers');
+      if (storedUsers) {
+        const users = JSON.parse(storedUsers);
+        const currentUser = users.find((user: any) => user.username === username);
+        if (currentUser) {
+          setBalance(currentUser.balance || 1000);
+        }
+      }
+    }
+  }, []);
+
+  const updateUserBalance = (newBalance: number) => {
+    const username = localStorage.getItem('username');
+    if (username) {
+      const storedUsers = localStorage.getItem('registeredUsers');
+      if (storedUsers) {
+        const users = JSON.parse(storedUsers);
+        const updatedUsers = users.map((user: any) => {
+          if (user.username === username) {
+            return { ...user, balance: newBalance };
+          }
+          return user;
+        });
+        localStorage.setItem('registeredUsers', JSON.stringify(updatedUsers));
+      }
+    }
+  };
+
   const handleSpin = () => {
     if (balance < bet) {
       toast.error("Not enough balance to place this bet!");
@@ -24,7 +58,10 @@ const SlotGame: React.FC<SlotGameProps> = ({ onWin, initialBet = 100 }) => {
     }
 
     setIsSpinning(true);
-    setBalance(prev => prev - bet);
+    const newBalance = balance - bet;
+    setBalance(newBalance);
+    updateUserBalance(newBalance);
+    
     setWinAmount(0);
 
     // Simulate spinning animation
@@ -55,7 +92,9 @@ const SlotGame: React.FC<SlotGameProps> = ({ onWin, initialBet = 100 }) => {
     if (reels[0] === reels[1] && reels[1] === reels[2]) {
       const multiplier = SYMBOLS.indexOf(reels[0]) + 3; // Higher value symbols have higher multipliers
       const win = bet * multiplier;
-      setBalance(prev => prev + win);
+      const newBalance = balance + win;
+      setBalance(newBalance);
+      updateUserBalance(newBalance);
       setWinAmount(win);
       toast.success(`You won ₱${win}!`);
       if (onWin) onWin(win);
@@ -65,7 +104,9 @@ const SlotGame: React.FC<SlotGameProps> = ({ onWin, initialBet = 100 }) => {
     // Check for 2 of a kind
     if (reels[0] === reels[1] || reels[1] === reels[2] || reels[0] === reels[2]) {
       const win = bet * 1.5;
-      setBalance(prev => prev + win);
+      const newBalance = balance + win;
+      setBalance(newBalance);
+      updateUserBalance(newBalance);
       setWinAmount(win);
       toast.success(`You won ₱${win}!`);
       if (onWin) onWin(win);
@@ -77,7 +118,9 @@ const SlotGame: React.FC<SlotGameProps> = ({ onWin, initialBet = 100 }) => {
       const sevens = reels.filter(r => r === '7️⃣').length;
       if (sevens > 0) {
         const win = bet * sevens;
-        setBalance(prev => prev + win);
+        const newBalance = balance + win;
+        setBalance(newBalance);
+        updateUserBalance(newBalance);
         setWinAmount(win);
         toast.success(`You won ₱${win} with ${sevens} seven(s)!`);
         if (onWin) onWin(win);
@@ -86,10 +129,6 @@ const SlotGame: React.FC<SlotGameProps> = ({ onWin, initialBet = 100 }) => {
     }
 
     toast.error("Better luck next time!");
-  };
-
-  const handleBetChange = (amount: number) => {
-    setBet(prev => Math.max(10, prev + amount));
   };
 
   return (
@@ -119,40 +158,22 @@ const SlotGame: React.FC<SlotGameProps> = ({ onWin, initialBet = 100 }) => {
       <div className="mb-6">
         <div className="flex justify-between items-center mb-2">
           <span className="text-white">Bet Amount:</span>
-          <div className="flex items-center gap-2">
-            <Button 
-              size="sm" 
-              variant="outline"
-              disabled={bet <= 10 || isSpinning}
-              onClick={() => handleBetChange(-10)}
-              className="h-8 w-8 p-0 border-casino-purple"
-            >
-              -
-            </Button>
-            <span className="text-white font-bold w-20 text-center">₱{bet}</span>
-            <Button 
-              size="sm" 
-              variant="outline"
-              disabled={bet >= 1000 || isSpinning}
-              onClick={() => handleBetChange(10)}
-              className="h-8 w-8 p-0 border-casino-purple"
-            >
-              +
-            </Button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-4 gap-2 mb-4">
-          {[10, 50, 100, 250].map((amount) => (
-            <button
-              key={amount}
-              onClick={() => setBet(amount)}
+          <div className="w-40">
+            <Select
+              value={bet.toString()}
+              onValueChange={(value) => setBet(parseInt(value))}
               disabled={isSpinning}
-              className="py-1 px-2 bg-casino-purple-dark hover:bg-casino-purple rounded border border-casino-purple text-white text-sm"
             >
-              ₱{amount}
-            </button>
-          ))}
+              <SelectTrigger className="w-full border-casino-purple bg-casino-dark text-white">
+                <SelectValue placeholder="Select bet" />
+              </SelectTrigger>
+              <SelectContent>
+                {BET_OPTIONS.map(option => (
+                  <SelectItem key={option} value={option.toString()}>₱{option}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 

@@ -7,12 +7,14 @@ import { allGames, Game } from '@/data/games';
 import { toast } from 'sonner';
 import SlotGame from '@/components/games/SlotGame';
 import AuthProtection from '@/components/auth/AuthProtection';
+import { CircleDot } from 'lucide-react'; // Added for customer service icon
 
 const GameDetailPage: React.FC = () => {
   const { category, id } = useParams<{ category: string; id: string }>();
   const navigate = useNavigate();
   const [game, setGame] = useState<Game | null>(null);
   const [showGameInterface, setShowGameInterface] = useState(false);
+  const [showSupport, setShowSupport] = useState(false);
   
   useEffect(() => {
     // Find the game by id
@@ -28,6 +30,27 @@ const GameDetailPage: React.FC = () => {
   const handlePlay = () => {
     setShowGameInterface(true);
   };
+
+  const handleWin = (amount: number) => {
+    // Update balance in Header component by triggering a localStorage event
+    window.dispatchEvent(new Event('storage:balance:updated'));
+    
+    // Record game history
+    const username = localStorage.getItem('username');
+    if (username) {
+      const gameHistory = JSON.parse(localStorage.getItem('gameHistory') || '[]');
+      gameHistory.push({
+        id: Date.now().toString(),
+        username,
+        gameName: game?.title || 'Unknown Game',
+        gameId: id || '',
+        bet: amount / 1.5, // Approximate the bet from the win amount
+        win: amount,
+        date: new Date().toISOString()
+      });
+      localStorage.setItem('gameHistory', JSON.stringify(gameHistory));
+    }
+  };
   
   if (!game) {
     return (
@@ -42,7 +65,55 @@ const GameDetailPage: React.FC = () => {
   return (
     <AuthProtection>
       <Layout>
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto relative">
+          {/* Customer Support Float Button */}
+          <div className="fixed bottom-6 right-6 z-10">
+            <Button
+              className="rounded-full w-14 h-14 bg-casino-gold hover:bg-yellow-500 text-black shadow-lg flex items-center justify-center"
+              onClick={() => setShowSupport(!showSupport)}
+            >
+              <CircleDot className="h-6 w-6" />
+            </Button>
+          </div>
+          
+          {/* Customer Support Chat Panel */}
+          {showSupport && (
+            <div className="fixed bottom-24 right-6 bg-card border border-casino-purple-dark rounded-lg w-80 md:w-96 z-10 shadow-xl">
+              <div className="p-4 border-b border-casino-purple-dark flex justify-between items-center">
+                <h3 className="font-bold text-white">Customer Support</h3>
+                <Button variant="ghost" size="sm" onClick={() => setShowSupport(false)}>
+                  ✕
+                </Button>
+              </div>
+              <div className="p-4 max-h-96 overflow-y-auto bg-casino-dark">
+                <p className="text-gray-300 text-sm mb-4">
+                  Welcome to Gala Casino support! How can we help you today?
+                </p>
+                <div className="flex gap-2 flex-wrap">
+                  <Button size="sm" className="bg-casino-purple hover:bg-casino-purple-dark text-white text-xs">
+                    Promo Codes
+                  </Button>
+                  <Button size="sm" className="bg-casino-purple hover:bg-casino-purple-dark text-white text-xs">
+                    Deposit Issues
+                  </Button>
+                  <Button size="sm" className="bg-casino-purple hover:bg-casino-purple-dark text-white text-xs">
+                    Game Rules
+                  </Button>
+                </div>
+                <div className="mt-4">
+                  <textarea 
+                    className="w-full bg-casino-purple-dark border border-casino-purple text-white rounded-md p-2 text-sm"
+                    placeholder="Type your message here..."
+                    rows={3}
+                  />
+                  <Button className="w-full mt-2 bg-casino-gold text-black">
+                    Send Message
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="mb-6">
             <button 
               onClick={() => navigate(`/${game.category}`)} 
@@ -118,7 +189,7 @@ const GameDetailPage: React.FC = () => {
               >
                 &larr; Back to game info
               </button>
-              <SlotGame />
+              <SlotGame onWin={handleWin} />
             </div>
           )}
         </div>

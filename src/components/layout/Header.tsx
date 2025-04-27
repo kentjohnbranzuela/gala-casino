@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -25,8 +24,7 @@ const Header = () => {
   const username = localStorage.getItem('username');
   const isAdmin = userType === 'admin';
   
-  useEffect(() => {
-    // Fetch user's balance from localStorage or initialize if first time
+  const updateBalance = () => {
     if (!isAdmin && username) {
       const storedUsers = localStorage.getItem('registeredUsers');
       if (storedUsers) {
@@ -39,6 +37,21 @@ const Header = () => {
         }
       }
     }
+  };
+  
+  useEffect(() => {
+    updateBalance();
+    
+    // Listen for balance updates from the game
+    const handleStorageEvent = () => {
+      updateBalance();
+    };
+    
+    window.addEventListener('storage:balance:updated', handleStorageEvent);
+    
+    return () => {
+      window.removeEventListener('storage:balance:updated', handleStorageEvent);
+    };
   }, [username, isAdmin]);
 
   const isActive = (path: string) => {
