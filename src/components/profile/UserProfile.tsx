@@ -17,10 +17,12 @@ const UserProfile: React.FC = () => {
   const [withdrawalHistory, setWithdrawalHistory] = useState<any[]>([]);
   const [depositHistory, setDepositHistory] = useState<any[]>([]);
   const [promoCodes, setPromoCodes] = useState<any[]>([]);
+  const [promoCode, setPromoCode] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
 
   useEffect(() => {
-    // Get user's balance from localStorage
-    const getUserBalance = () => {
+    // Get user's info from localStorage
+    const getUserInfo = () => {
       try {
         const storedUsers = localStorage.getItem('registeredUsers');
         if (storedUsers) {
@@ -28,10 +30,11 @@ const UserProfile: React.FC = () => {
           const currentUser = users.find((user: any) => user.username === username);
           if (currentUser) {
             setUserBalance(currentUser.balance || 0);
+            setPhoneNumber(currentUser.phoneNumber || '');
           }
         }
       } catch (error) {
-        console.error("Error getting user balance:", error);
+        console.error("Error getting user info:", error);
       }
     };
 
@@ -89,14 +92,14 @@ const UserProfile: React.FC = () => {
       }
     };
 
-    getUserBalance();
+    getUserInfo();
     getWithdrawalHistory();
     getDepositHistory();
     getPromoCodes();
 
     // Set up event listener to reload data when localStorage changes
     const handleStorageChange = () => {
-      getUserBalance();
+      getUserInfo();
       getWithdrawalHistory();
       getDepositHistory();
       getPromoCodes();
@@ -148,6 +151,12 @@ const UserProfile: React.FC = () => {
           });
           
           localStorage.setItem('registeredUsers', JSON.stringify(updatedUsers));
+          
+          // Simulate SMS notification
+          if (phoneNumber) {
+            console.info(`SMS notification sent to ${phoneNumber}: Your account password has been updated successfully.`);
+          }
+          
           toast.success('Password updated successfully');
           setCurrentPassword('');
           setNewPassword('');
@@ -189,6 +198,12 @@ const UserProfile: React.FC = () => {
         
         localStorage.setItem('registeredUsers', JSON.stringify(updatedUsers));
         localStorage.setItem('username', newUsername);
+        
+        // Simulate SMS notification
+        if (phoneNumber) {
+          console.info(`SMS notification sent to ${phoneNumber}: Your username has been updated to ${newUsername}.`);
+        }
+        
         toast.success('Username updated successfully');
         window.location.reload(); // Reload to update header
       }
@@ -198,49 +213,77 @@ const UserProfile: React.FC = () => {
     }
   };
   
-  const redeemPromoCode = (code: string) => {
-    const storedUsers = localStorage.getItem('registeredUsers');
-    const storedPromoCodes = localStorage.getItem('promoCodes');
+  const handleRedeemPromoCode = () => {
+    if (!promoCode) {
+      toast.error('Please enter a promo code');
+      return;
+    }
     
-    if (storedUsers && storedPromoCodes) {
-      const users = JSON.parse(storedUsers);
-      const promoCodes = JSON.parse(storedPromoCodes);
-      const currentUser = users.find((user: any) => user.username === username);
-      const promoCode = promoCodes.find((promo: any) => promo.code === code);
+    try {
+      const storedUsers = localStorage.getItem('registeredUsers');
+      const storedPromoCodes = localStorage.getItem('promoCodes');
       
-      if (currentUser && promoCode && !promoCode.used) {
-        // Update user's balance
-        const updatedUsers = users.map((user: any) => {
-          if (user.username === username) {
-            return { 
-              ...user, 
-              balance: (user.balance || 0) + promoCode.amount 
-            };
-          }
-          return user;
-        });
-        
-        // Mark promo code as used
-        const updatedPromoCodes = promoCodes.map((promo: any) => 
-          promo.code === code ? { ...promo, used: true, redeemedBy: username } : promo
+      if (storedUsers && storedPromoCodes) {
+        const users = JSON.parse(storedUsers);
+        const allPromoCodes = JSON.parse(storedPromoCodes);
+        const currentUser = users.find((user: any) => user.username === username);
+        const matchingPromo = allPromoCodes.find((promo: any) => 
+          promo.code === promoCode.toUpperCase() && !promo.used
         );
         
-        localStorage.setItem('registeredUsers', JSON.stringify(updatedUsers));
-        localStorage.setItem('promoCodes', JSON.stringify(updatedPromoCodes));
+        if (!matchingPromo) {
+          toast.error('Invalid or already used promo code');
+          return;
+        }
         
-        toast.success(`Promo code ${code} redeemed! ₱${promoCode.amount} added to your balance.`);
-        
-        // Update UI
-        setPromoCodes(updatedPromoCodes);
-        setUserBalance((prev) => prev + promoCode.amount);
-        
-        // Trigger storage event to update other components
-        window.dispatchEvent(new Event('storage'));
-      } else if (promoCode && promoCode.used) {
-        toast.error('This promo code has already been used');
-      } else {
-        toast.error('Invalid promo code');
+        if (currentUser) {
+          // Update user's balance with the bonus amount
+          const updatedUsers = users.map((user: any) => {
+            if (user.username === username) {
+              return { 
+                ...user, 
+                balance: (user.balance || 0) + matchingPromo.bonus
+              };
+            }
+            return user;
+          });
+          
+          // Mark promo code as used
+          const updatedPromoCodes = allPromoCodes.map((promo: any) => {
+            if (promo.code === matchingPromo.code) {
+              return {
+                ...promo,
+                used: true,
+                usedBy: username
+              };
+            }
+            return promo;
+          });
+          
+          // Update localStorage
+          localStorage.setItem('registeredUsers', JSON.stringify(updatedUsers));
+          localStorage.setItem('promoCodes', JSON.stringify(updatedPromoCodes));
+          
+          // Update state
+          setUserBalance((prev) => prev + matchingPromo.bonus);
+          setPromoCodes(updatedPromoCodes);
+          setPromoCode('');
+          
+          // Simulate SMS notification
+          if (phoneNumber) {
+            console.info(`SMS notification sent to ${phoneNumber}: You have successfully redeemed promo code ${matchingPromo.code} for ${formatAmount(matchingPromo.bonus)}.`);
+          }
+          
+          // Show success message
+          toast.success(`Promo code redeemed successfully! ${formatAmount(matchingPromo.bonus)} added to your balance.`);
+          
+          // Trigger storage event
+          window.dispatchEvent(new Event('storage'));
+        }
       }
+    } catch (error) {
+      console.error("Error redeeming promo code:", error);
+      toast.error('An error occurred while redeeming the promo code');
     }
   };
 
@@ -253,10 +296,13 @@ const UserProfile: React.FC = () => {
           <div>
             <h2 className="text-lg font-medium">Welcome, {username}</h2>
             <p className="text-sm text-gray-400">Account Level: Regular</p>
+            {phoneNumber && (
+              <p className="text-sm text-gray-400">Phone: {phoneNumber}</p>
+            )}
           </div>
           <div className="mt-4 md:mt-0">
             <p className="text-sm text-gray-400">Balance</p>
-            <p className="text-2xl font-bold text-casino-gold">₱{userBalance.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-casino-gold">{formatAmount(userBalance)}</p>
           </div>
         </div>
       </div>
@@ -472,6 +518,18 @@ const UserProfile: React.FC = () => {
               <CardDescription>Redeem promotional offers</CardDescription>
             </CardHeader>
             <CardContent>
+              <div className="flex space-x-2 mb-6">
+                <Input
+                  placeholder="Enter promo code"
+                  value={promoCode}
+                  onChange={(e) => setPromoCode(e.target.value)}
+                  className="bg-muted border-casino-purple-dark"
+                />
+                <Button onClick={handleRedeemPromoCode} className="btn-casino whitespace-nowrap">
+                  Redeem
+                </Button>
+              </div>
+              
               <div className="overflow-x-auto">
                 <table className="history-table">
                   <thead>
@@ -480,35 +538,25 @@ const UserProfile: React.FC = () => {
                       <th>Bonus</th>
                       <th>Expires</th>
                       <th>Status</th>
-                      <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {promoCodes.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="text-center py-4 text-gray-400">
+                        <td colSpan={4} className="text-center py-4 text-gray-400">
                           No promo codes available
                         </td>
                       </tr>
                     ) : (
                       promoCodes.map((promo) => (
-                        <tr key={promo.code}>
+                        <tr key={promo.id || promo.code}>
                           <td>{promo.code}</td>
-                          <td>{formatAmount(promo.amount)}</td>
+                          <td>{formatAmount(promo.bonus)}</td>
                           <td>{promo.expiryDate || 'No expiry'}</td>
-                          <td>{promo.used ? 'Used' : 'Available'}</td>
                           <td>
-                            {!promo.used ? (
-                              <Button 
-                                size="sm" 
-                                className="btn-casino"
-                                onClick={() => redeemPromoCode(promo.code)}
-                              >
-                                Redeem
-                              </Button>
-                            ) : (
-                              <span className="text-sm text-muted-foreground">Already redeemed</span>
-                            )}
+                            <span className={`status-badge ${promo.used ? 'status-success' : 'bg-amber-500'}`}>
+                              {promo.used ? (promo.usedBy === username ? 'REDEEMED BY YOU' : 'USED') : 'AVAILABLE'}
+                            </span>
                           </td>
                         </tr>
                       ))

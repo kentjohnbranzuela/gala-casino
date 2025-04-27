@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Phone } from 'lucide-react';
 
 const LoginPage: React.FC = () => {
   // Login state
@@ -18,6 +18,7 @@ const LoginPage: React.FC = () => {
   const [regUsername, setRegUsername] = useState('');
   const [regPassword, setRegPassword] = useState('');
   const [regConfirmPassword, setRegConfirmPassword] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
   const [showRegPassword, setShowRegPassword] = useState(false);
   
@@ -27,8 +28,8 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Admin credentials
-    if (username === 'admin09917104135' && password === 'admin123456') {
+    // Admin credentials - updated with new admin credentials
+    if (username === 'admin' && password === 'admin123') {
       setTimeout(() => {
         localStorage.setItem('userType', 'admin');
         localStorage.setItem('isLoggedIn', 'true');
@@ -66,6 +67,12 @@ const LoginPage: React.FC = () => {
             
             setTimeout(() => {
               toast.success('Login successful!');
+              
+              // Simulate SMS notification for login
+              if (foundUser.phoneNumber) {
+                console.info(`SMS notification sent to ${foundUser.phoneNumber}: You have successfully logged in to your casino account.`);
+              }
+              
               navigate('/');
               setIsLoading(false);
             }, 1000);
@@ -103,6 +110,12 @@ const LoginPage: React.FC = () => {
       return;
     }
     
+    if (!phoneNumber) {
+      toast.error('Phone number is required');
+      setIsRegistering(false);
+      return;
+    }
+    
     try {
       // Check if username already exists
       const storedUsers = localStorage.getItem('registeredUsers');
@@ -125,6 +138,7 @@ const LoginPage: React.FC = () => {
         id: Date.now().toString(),
         username: regUsername,
         password: regPassword, // In a real app, this would be hashed
+        phoneNumber: phoneNumber, // Add phone number
         registrationDate: today,
         lastLogin: today,
         depositCount: 0,
@@ -141,12 +155,16 @@ const LoginPage: React.FC = () => {
       // Trigger an event so the admin panel can refresh
       window.dispatchEvent(new Event('storage'));
       
+      // Simulate SMS notification
+      console.info(`SMS notification sent to ${phoneNumber}: Your account registration was successful! Welcome to Gala Casino.`);
+      
       setTimeout(() => {
         toast.success('Account created successfully! You can now log in.');
         setIsRegistering(false);
         setRegUsername('');
         setRegPassword('');
         setRegConfirmPassword('');
+        setPhoneNumber('');
       }, 1000);
     } catch (error) {
       console.error("Registration error:", error);
@@ -232,6 +250,26 @@ const LoginPage: React.FC = () => {
                   className="bg-muted border-casino-purple-dark"
                   required
                 />
+              </div>
+              
+              <div className="space-y-2">
+                <label htmlFor="phone-number" className="block text-sm font-medium text-gray-300">
+                  Phone Number
+                </label>
+                <div className="relative">
+                  <Input
+                    id="phone-number"
+                    type="tel"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    className="bg-muted border-casino-purple-dark pl-10"
+                    placeholder="09XXXXXXXXX"
+                    required
+                  />
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                    <Phone size={18} />
+                  </span>
+                </div>
               </div>
               
               <div className="space-y-2">
