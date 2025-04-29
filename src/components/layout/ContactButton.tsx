@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { MessageCircle } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import CustomerServiceForm from '../profile/CustomerServiceForm';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -20,8 +20,9 @@ export const ContactButton = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const username = localStorage.getItem('username') || '';
+  const isAdmin = localStorage.getItem('userRole') === 'admin';
   
-  // Load user's messages
+  // Load user's messages with more reliable storage management
   useEffect(() => {
     if (!username) return;
     
@@ -30,13 +31,19 @@ export const ContactButton = () => {
         const storedMessages = localStorage.getItem('customerServiceMessages');
         if (storedMessages) {
           const allMessages = JSON.parse(storedMessages);
-          const userMessages = allMessages.filter((msg: ChatMessage) => msg.username === username);
+          
+          // For admin, show all messages, for regular users show only their messages
+          const userMessages = isAdmin 
+            ? allMessages 
+            : allMessages.filter((msg: ChatMessage) => msg.username === username);
           
           setMessages(userMessages);
           
-          // Count unread replies
-          const unread = userMessages.filter((msg: ChatMessage) => msg.replied && !msg.read).length;
-          setUnreadCount(unread);
+          // Count unread replies for regular users
+          if (!isAdmin) {
+            const unread = userMessages.filter((msg: ChatMessage) => msg.replied && !msg.read).length;
+            setUnreadCount(unread);
+          }
         }
       } catch (error) {
         console.error("Error loading messages:", error);
@@ -48,12 +55,14 @@ export const ContactButton = () => {
     // Set up event listener for new messages
     window.addEventListener('storage', loadMessages);
     window.addEventListener('user:notification', loadMessages);
+    window.addEventListener('customerService:new-message', loadMessages);
     
     return () => {
       window.removeEventListener('storage', loadMessages);
       window.removeEventListener('user:notification', loadMessages);
+      window.removeEventListener('customerService:new-message', loadMessages);
     };
-  }, [username, isOpen]);
+  }, [username, isOpen, isAdmin]);
   
   // Mark messages as read when opening chat
   useEffect(() => {
@@ -92,6 +101,9 @@ export const ContactButton = () => {
     }
   }, [isOpen, messages, username]);
   
+  // Don't show the contact button for admin users
+  if (isAdmin) return null;
+  
   return (
     <>
       <button 
@@ -111,6 +123,9 @@ export const ContactButton = () => {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Customer Support</DialogTitle>
+            <DialogDescription>
+              Need help? Contact our customer service team below.
+            </DialogDescription>
           </DialogHeader>
           
           <Tabs defaultValue="new-message" className="w-full">
