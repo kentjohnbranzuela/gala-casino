@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -192,7 +191,7 @@ const Header = () => {
       </div>
 
       {isDepositModalOpen && <DepositModal onClose={() => setIsDepositModalOpen(false)} />}
-      {isWithdrawModalOpen && <WithdrawModal onClose={() => setIsWithdrawModalOpen(false)} />}
+      {isWithdrawModalOpen && <WithdrawalModal onClose={() => setIsWithdrawModalOpen(false)} />}
     </header>
   );
 };
