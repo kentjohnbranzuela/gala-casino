@@ -369,7 +369,7 @@ const UserProfile: React.FC = () => {
         </TabsList>
 
         {isMobile && (
-          <div className="flex space-x-2 mb-4">
+          <TabsList className="flex space-x-2 mb-4">
             <TabsTrigger value="promo" className="flex-1 flex items-center justify-center gap-1 py-2">
               <Tag size={16} />
               <span className="text-xs">Promos</span>
@@ -378,7 +378,7 @@ const UserProfile: React.FC = () => {
               <MessageSquare size={16} />
               <span className="text-xs">Support</span>
             </TabsTrigger>
-          </div>
+          </TabsList>
         )}
         
         <TabsContent value="security">
