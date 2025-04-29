@@ -5,6 +5,7 @@ import WithdrawalApproval from '@/components/admin/WithdrawalApproval';
 import DepositApproval from '@/components/admin/DepositApproval';
 import UserManagement from '@/components/admin/UserManagement';
 import PromoCodeManagement from '@/components/admin/PromoCodeManagement';
+import PromoCodePublicList from '@/components/admin/PromoCodePublicList';
 import CustomerSupportManagement from '@/components/admin/CustomerSupportManagement';
 import AuthProtection from '@/components/auth/AuthProtection';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -14,7 +15,9 @@ const AdminPage: React.FC = () => {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const tabParam = searchParams.get('tab');
-  const defaultTab = tabParam === 'support' ? 'support' : 'deposits';
+  const defaultTab = tabParam === 'support' ? 'support' : (
+    tabParam === 'users' ? 'users' : 'deposits'
+  );
 
   return (
     <AuthProtection requiredRole="admin" excludeRole="user">
@@ -45,6 +48,7 @@ const AdminPage: React.FC = () => {
             
             <TabsContent value="promo">
               <PromoCodeManagement />
+              <PromoCodePublicList />
             </TabsContent>
             
             <TabsContent value="support">

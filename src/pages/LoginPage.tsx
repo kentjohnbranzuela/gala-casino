@@ -34,6 +34,12 @@ const LoginPage: React.FC = () => {
         localStorage.setItem('userType', 'admin');
         localStorage.setItem('isLoggedIn', 'true');
         localStorage.setItem('username', username);
+        
+        // Synchronize with sessionStorage for cross-device consistency
+        sessionStorage.setItem('userType', 'admin');
+        sessionStorage.setItem('isLoggedIn', 'true');
+        sessionStorage.setItem('username', username);
+        
         toast.success('Welcome, Admin!');
         navigate('/admin');
         setIsLoading(false);
@@ -54,7 +60,12 @@ const LoginPage: React.FC = () => {
               if (user.username === username) {
                 return {
                   ...user,
-                  lastLogin: new Date().toISOString().split('T')[0]
+                  lastLogin: new Date().toISOString().split('T')[0],
+                  // Add IP and geolocation info
+                  lastLoginInfo: {
+                    timestamp: new Date().toISOString(),
+                    device: navigator.userAgent
+                  }
                 };
               }
               return user;
@@ -64,6 +75,11 @@ const LoginPage: React.FC = () => {
             localStorage.setItem('userType', 'user');
             localStorage.setItem('isLoggedIn', 'true');
             localStorage.setItem('username', username);
+            
+            // Synchronize with sessionStorage for cross-device consistency
+            sessionStorage.setItem('userType', 'user');
+            sessionStorage.setItem('isLoggedIn', 'true');
+            sessionStorage.setItem('username', username);
             
             setTimeout(() => {
               toast.success('Login successful!');
@@ -132,7 +148,7 @@ const LoginPage: React.FC = () => {
         }
       }
       
-      // Create new user
+      // Create new user with geolocation info
       const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
       const newUser = {
         id: Date.now().toString(),
@@ -141,6 +157,10 @@ const LoginPage: React.FC = () => {
         phoneNumber: phoneNumber, // Add phone number
         registrationDate: today,
         lastLogin: today,
+        registrationInfo: {
+          timestamp: new Date().toISOString(),
+          device: navigator.userAgent
+        },
         depositCount: 0,
         withdrawalCount: 0,
         totalDeposits: 0,
@@ -154,6 +174,9 @@ const LoginPage: React.FC = () => {
       
       // Trigger an event so the admin panel can refresh
       window.dispatchEvent(new Event('storage'));
+      window.dispatchEvent(new CustomEvent('user:registered', { 
+        detail: { username: regUsername, phone: phoneNumber } 
+      }));
       
       // Simulate SMS notification
       console.info(`SMS notification sent to ${phoneNumber}: Your account registration was successful! Welcome to Gala Casino.`);

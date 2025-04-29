@@ -4,8 +4,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Shield, CreditCard, History, Award, Tag } from 'lucide-react';
+import { Shield, CreditCard, History, Award, Tag, MessageSquare } from 'lucide-react';
 import { toast } from 'sonner';
+import CustomerServiceForm from './CustomerServiceForm';
 
 const UserProfile: React.FC = () => {
   const username = localStorage.getItem('username') || '';
@@ -19,6 +20,8 @@ const UserProfile: React.FC = () => {
   const [promoCodes, setPromoCodes] = useState<any[]>([]);
   const [promoCode, setPromoCode] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [userNotifications, setUserNotifications] = useState<any[]>([]);
+  const [hasNewNotification, setHasNewNotification] = useState(false);
 
   useEffect(() => {
     // Get user's info from localStorage
@@ -76,12 +79,12 @@ const UserProfile: React.FC = () => {
       }
     };
 
-    // Get promo codes
+    // Get public promo codes (codes that should be visible to users)
     const getPromoCodes = () => {
       try {
-        const storedPromoCodes = localStorage.getItem('promoCodes');
-        if (storedPromoCodes) {
-          const parsedPromoCodes = JSON.parse(storedPromoCodes);
+        const storedPublicPromoCodes = localStorage.getItem('publicPromoCodes');
+        if (storedPublicPromoCodes) {
+          const parsedPromoCodes = JSON.parse(storedPublicPromoCodes);
           setPromoCodes(parsedPromoCodes);
         } else {
           setPromoCodes([]);
@@ -91,11 +94,30 @@ const UserProfile: React.FC = () => {
         setPromoCodes([]);
       }
     };
+    
+    // Get user notifications
+    const getUserNotifications = () => {
+      try {
+        const storedNotifications = localStorage.getItem('userNotifications');
+        if (storedNotifications) {
+          const allNotifications = JSON.parse(storedNotifications);
+          const userNotifs = allNotifications[username] || [];
+          setUserNotifications(userNotifs);
+          
+          // Check for new notifications
+          const hasNew = userNotifs.some((notif: any) => !notif.read);
+          setHasNewNotification(hasNew);
+        }
+      } catch (error) {
+        console.error("Error loading notifications:", error);
+      }
+    };
 
     getUserInfo();
     getWithdrawalHistory();
     getDepositHistory();
     getPromoCodes();
+    getUserNotifications();
 
     // Set up event listener to reload data when localStorage changes
     const handleStorageChange = () => {
@@ -103,12 +125,15 @@ const UserProfile: React.FC = () => {
       getWithdrawalHistory();
       getDepositHistory();
       getPromoCodes();
+      getUserNotifications();
     };
     
     window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('user:notification', handleStorageChange);
     
     return () => {
       window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('user:notification', handleStorageChange);
     };
   }, [username]);
   
@@ -198,6 +223,7 @@ const UserProfile: React.FC = () => {
         
         localStorage.setItem('registeredUsers', JSON.stringify(updatedUsers));
         localStorage.setItem('username', newUsername);
+        sessionStorage.setItem('username', newUsername);
         
         // Simulate SMS notification
         if (phoneNumber) {
@@ -221,7 +247,7 @@ const UserProfile: React.FC = () => {
     
     try {
       const storedUsers = localStorage.getItem('registeredUsers');
-      const storedPromoCodes = localStorage.getItem('promoCodes');
+      const storedPromoCodes = localStorage.getItem('publicPromoCodes') || localStorage.getItem('promoCodes');
       
       if (storedUsers && storedPromoCodes) {
         const users = JSON.parse(storedUsers);
@@ -262,7 +288,13 @@ const UserProfile: React.FC = () => {
           
           // Update localStorage
           localStorage.setItem('registeredUsers', JSON.stringify(updatedUsers));
-          localStorage.setItem('promoCodes', JSON.stringify(updatedPromoCodes));
+          
+          if (localStorage.getItem('publicPromoCodes')) {
+            localStorage.setItem('publicPromoCodes', JSON.stringify(updatedPromoCodes));
+          }
+          if (localStorage.getItem('promoCodes')) {
+            localStorage.setItem('promoCodes', JSON.stringify(updatedPromoCodes));
+          }
           
           // Update state
           setUserBalance((prev) => prev + matchingPromo.bonus);
@@ -308,22 +340,31 @@ const UserProfile: React.FC = () => {
       </div>
       
       <Tabs defaultValue="security" className="w-full">
-        <TabsList className="grid grid-cols-4 mb-8">
+        <TabsList className="grid grid-cols-2 md:grid-cols-5 mb-8">
           <TabsTrigger value="security" className="flex flex-col items-center justify-center gap-2 py-4">
             <Shield size={20} />
-            <span>Account Security</span>
+            <span className="hidden md:inline">Account Security</span>
+            <span className="md:hidden">Security</span>
           </TabsTrigger>
           <TabsTrigger value="deposits" className="flex flex-col items-center justify-center gap-2 py-4">
             <CreditCard size={20} />
-            <span>Deposit History</span>
+            <span className="hidden md:inline">Deposit History</span>
+            <span className="md:hidden">Deposits</span>
           </TabsTrigger>
           <TabsTrigger value="withdrawals" className="flex flex-col items-center justify-center gap-2 py-4">
             <History size={20} />
-            <span>Withdrawal Status</span>
+            <span className="hidden md:inline">Withdrawal Status</span>
+            <span className="md:hidden">Withdrawals</span>
           </TabsTrigger>
           <TabsTrigger value="promo" className="flex flex-col items-center justify-center gap-2 py-4">
             <Tag size={20} />
-            <span>Promo Codes</span>
+            <span className="hidden md:inline">Promo Codes</span>
+            <span className="md:hidden">Promos</span>
+          </TabsTrigger>
+          <TabsTrigger value="support" className="flex flex-col items-center justify-center gap-2 py-4">
+            <MessageSquare size={20} />
+            <span className="hidden md:inline">Customer Support</span>
+            <span className="md:hidden">Support</span>
           </TabsTrigger>
         </TabsList>
         
@@ -566,6 +607,36 @@ const UserProfile: React.FC = () => {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+        
+        <TabsContent value="support">
+          <CustomerServiceForm />
+          
+          {userNotifications && userNotifications.length > 0 && (
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle>Support Notifications</CardTitle>
+                <CardDescription>Messages from customer support</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {userNotifications.map((notification) => (
+                    <div 
+                      key={notification.id} 
+                      className={`p-4 rounded-lg ${notification.read ? 'bg-muted' : 'bg-casino-purple/20 border-l-2 border-casino-gold'}`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <p className="font-medium">{notification.message}</p>
+                        <span className="text-xs text-gray-400">
+                          {new Date(notification.timestamp).toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
     </div>

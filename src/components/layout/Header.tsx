@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -5,6 +6,7 @@ import { Wallet, Coins, LogOut, User, Mail } from 'lucide-react';
 import DepositModal from '../modals/DepositModal';
 import WithdrawalModal from '../modals/WithdrawModal';
 import { Avatar, AvatarFallback } from '../ui/avatar';
+import AdminNotifications from '../admin/AdminNotifications';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,8 +23,8 @@ const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
   
-  const userType = localStorage.getItem('userType');
-  const username = localStorage.getItem('username');
+  const userType = localStorage.getItem('userType') || sessionStorage.getItem('userType');
+  const username = localStorage.getItem('username') || sessionStorage.getItem('username');
   const isAdmin = userType === 'admin';
   
   const updateBalance = () => {
@@ -94,8 +96,20 @@ const Header = () => {
     localStorage.removeItem('userType');
     localStorage.removeItem('isLoggedIn');
     localStorage.removeItem('username');
+    sessionStorage.removeItem('userType');
+    sessionStorage.removeItem('isLoggedIn');
+    sessionStorage.removeItem('username');
     toast.success('Successfully logged out');
     navigate('/login');
+  };
+  
+  // SMS notification function
+  const sendSMSNotification = (phoneNumber: string, message: string) => {
+    if (phoneNumber) {
+      console.info(`SMS notification sent to ${phoneNumber}: ${message}`);
+      return true;
+    }
+    return false;
   };
 
   return (
@@ -132,6 +146,7 @@ const Header = () => {
                       <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full"></span>
                     )}
                   </Button>
+                  <AdminNotifications />
                 </>
               )}
             </nav>
