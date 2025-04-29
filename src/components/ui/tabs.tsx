@@ -2,7 +2,7 @@
 import * as React from "react"
 import * as TabsPrimitive from "@radix-ui/react-tabs"
 import { cn } from "@/lib/utils"
-import { RovingFocusGroup, RovingFocusItem } from "@radix-ui/react-roving-focus"
+import { RovingFocusGroup, RovingFocusGroupItem } from "@radix-ui/react-roving-focus"
 
 const Tabs = TabsPrimitive.Root
 
@@ -27,7 +27,7 @@ const TabsTrigger = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
 >(({ className, ...props }, ref) => (
-  <RovingFocusItem asChild>
+  <RovingFocusGroupItem asChild>
     <TabsPrimitive.Trigger
       ref={ref}
       className={cn(
@@ -36,7 +36,7 @@ const TabsTrigger = React.forwardRef<
       )}
       {...props}
     />
-  </RovingFocusItem>
+  </RovingFocusGroupItem>
 ))
 TabsTrigger.displayName = TabsPrimitive.Trigger.displayName
 
