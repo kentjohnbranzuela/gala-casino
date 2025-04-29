@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Shield, CreditCard, History, Award, Tag, MessageSquare } from 'lucide-react';
 import { toast } from 'sonner';
 import CustomerServiceForm from './CustomerServiceForm';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const UserProfile: React.FC = () => {
   const username = localStorage.getItem('username') || '';
@@ -22,7 +22,8 @@ const UserProfile: React.FC = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [userNotifications, setUserNotifications] = useState<any[]>([]);
   const [hasNewNotification, setHasNewNotification] = useState(false);
-
+  const isMobile = useIsMobile();
+  
   useEffect(() => {
     // Get user's info from localStorage
     const getUserInfo = () => {
@@ -340,33 +341,45 @@ const UserProfile: React.FC = () => {
       </div>
       
       <Tabs defaultValue="security" className="w-full">
-        <TabsList className="grid grid-cols-2 md:grid-cols-5 mb-8">
-          <TabsTrigger value="security" className="flex flex-col items-center justify-center gap-2 py-4">
-            <Shield size={20} />
-            <span className="hidden md:inline">Account Security</span>
-            <span className="md:hidden">Security</span>
+        <TabsList className={`grid ${isMobile ? 'grid-cols-3' : 'grid-cols-5'} mb-8`}>
+          <TabsTrigger value="security" className="flex flex-col items-center justify-center gap-1 py-3">
+            <Shield size={isMobile ? 16 : 20} />
+            <span className="text-xs md:text-sm">Security</span>
           </TabsTrigger>
-          <TabsTrigger value="deposits" className="flex flex-col items-center justify-center gap-2 py-4">
-            <CreditCard size={20} />
-            <span className="hidden md:inline">Deposit History</span>
-            <span className="md:hidden">Deposits</span>
+          <TabsTrigger value="deposits" className="flex flex-col items-center justify-center gap-1 py-3">
+            <CreditCard size={isMobile ? 16 : 20} />
+            <span className="text-xs md:text-sm">Deposits</span>
           </TabsTrigger>
-          <TabsTrigger value="withdrawals" className="flex flex-col items-center justify-center gap-2 py-4">
-            <History size={20} />
-            <span className="hidden md:inline">Withdrawal Status</span>
-            <span className="md:hidden">Withdrawals</span>
+          <TabsTrigger value="withdrawals" className="flex flex-col items-center justify-center gap-1 py-3">
+            <History size={isMobile ? 16 : 20} />
+            <span className="text-xs md:text-sm">Withdrawals</span>
           </TabsTrigger>
-          <TabsTrigger value="promo" className="flex flex-col items-center justify-center gap-2 py-4">
-            <Tag size={20} />
-            <span className="hidden md:inline">Promo Codes</span>
-            <span className="md:hidden">Promos</span>
-          </TabsTrigger>
-          <TabsTrigger value="support" className="flex flex-col items-center justify-center gap-2 py-4">
-            <MessageSquare size={20} />
-            <span className="hidden md:inline">Customer Support</span>
-            <span className="md:hidden">Support</span>
-          </TabsTrigger>
+          {!isMobile && (
+            <TabsTrigger value="promo" className="flex flex-col items-center justify-center gap-1 py-3">
+              <Tag size={20} />
+              <span className="text-sm">Promos</span>
+            </TabsTrigger>
+          )}
+          {!isMobile && (
+            <TabsTrigger value="support" className="flex flex-col items-center justify-center gap-1 py-3">
+              <MessageSquare size={20} />
+              <span className="text-sm">Support</span>
+            </TabsTrigger>
+          )}
         </TabsList>
+
+        {isMobile && (
+          <div className="flex space-x-2 mb-4">
+            <TabsTrigger value="promo" className="flex-1 flex items-center justify-center gap-1 py-2">
+              <Tag size={16} />
+              <span className="text-xs">Promos</span>
+            </TabsTrigger>
+            <TabsTrigger value="support" className="flex-1 flex items-center justify-center gap-1 py-2">
+              <MessageSquare size={16} />
+              <span className="text-xs">Support</span>
+            </TabsTrigger>
+          </div>
+        )}
         
         <TabsContent value="security">
           <div className="grid gap-6 md:grid-cols-2">

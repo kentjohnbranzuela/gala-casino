@@ -1,9 +1,11 @@
 
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import GameGrid from '@/components/games/GameGrid';
 import { colorGames } from '@/data/games';
-import { CircleDot } from 'lucide-react'; // Using CircleDot instead of Wheel which isn't in lucide-react
+import { CircleDot } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 // Define specific feature games with custom UI to highlight them
 const colorWheelGame = {
@@ -31,6 +33,12 @@ const colorDropGame = {
 };
 
 const ColorPage: React.FC = () => {
+  const navigate = useNavigate();
+  
+  const handlePlayGame = (gameId: string) => {
+    navigate(`/color/${gameId}`);
+  };
+
   return (
     <Layout>
       <div className="space-y-8">
@@ -55,7 +63,7 @@ const ColorPage: React.FC = () => {
               </div>
             </div>
             
-            <div className="relative h-48 md:h-64 bg-black/50 rounded-lg overflow-hidden">
+            <div className="relative h-48 md:h-64 bg-black/50 rounded-lg overflow-hidden cursor-pointer" onClick={() => handlePlayGame(colorWheelGame.id)}>
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="w-4/5 h-4/5 rounded-full border-8 border-white animate-spin" style={{ animationDuration: '8s' }}>
                   <div className="absolute top-0 left-1/2 -translate-x-1/2 -mt-4 w-4 h-4 bg-white rounded-full"></div>
@@ -67,9 +75,15 @@ const ColorPage: React.FC = () => {
                 </div>
               </div>
               <div className="absolute bottom-4 left-0 right-0 text-center">
-                <button className="bg-casino-gold text-black font-bold py-2 px-6 rounded-full hover:bg-yellow-500 transition">
+                <Button 
+                  className="bg-casino-gold text-black font-bold py-2 px-6 rounded-full hover:bg-yellow-500 transition"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handlePlayGame(colorWheelGame.id);
+                  }}
+                >
                   Play Now
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -91,16 +105,22 @@ const ColorPage: React.FC = () => {
               </div>
             </div>
             
-            <div className="relative h-48 md:h-64 bg-black/50 rounded-lg overflow-hidden">
+            <div className="relative h-48 md:h-64 bg-black/50 rounded-lg overflow-hidden cursor-pointer" onClick={() => handlePlayGame(colorDropGame.id)}>
               <div className="absolute inset-0 grid grid-cols-3 gap-2 p-4">
                 <div className="bg-red-500 rounded-lg animate-bounce" style={{ animationDuration: '1.5s', animationDelay: '0.1s' }}></div>
                 <div className="bg-blue-500 rounded-lg animate-bounce" style={{ animationDuration: '1.7s', animationDelay: '0.3s' }}></div>
                 <div className="bg-green-500 rounded-lg animate-bounce" style={{ animationDuration: '1.9s', animationDelay: '0.5s' }}></div>
               </div>
               <div className="absolute bottom-4 left-0 right-0 text-center">
-                <button className="bg-casino-gold text-black font-bold py-2 px-6 rounded-full hover:bg-yellow-500 transition">
+                <Button 
+                  className="bg-casino-gold text-black font-bold py-2 px-6 rounded-full hover:bg-yellow-500 transition"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handlePlayGame(colorDropGame.id);
+                  }}
+                >
                   Play Now
-                </button>
+                </Button>
               </div>
             </div>
           </div>
